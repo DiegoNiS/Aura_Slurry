@@ -1,103 +1,124 @@
-# Aura-Slurry 🎙️⛏️
+# 🎙️⛏️ Aura-Slurry
 
 **Mantenimiento predictivo acústico de bajo costo para bombas de pulpa en minería.**
-Hackatón IA — FLIT 2026 (Arequipa).
 
-Convierte un micrófono de bajo costo en un sensor de salud mecánica: captura el sonido de la bomba **en vivo**, aísla su firma acústica del ruido de planta (sustracción espectral) y clasifica su estado en tiempo real en un dashboard tipo SCADA.
+> Un micrófono de ~$50 escucha la bomba 24/7. La IA aísla su firma acústica del
+> ruido de planta, diagnostica su salud cada segundo, sugiere acciones al
+> supervisor y envía reportes de incidente a la minera — antes de que la falla
+> detenga la producción.
 
-## Estructura del proyecto
+Proyecto del equipo Aura-Slurry para la **Hackatón IA — FLIT 2026 (Arequipa)**.
+
+---
+
+## ¿Qué hace?
+
+| Capacidad | Descripción |
+|---|---|
+| 🎤 **Monitoreo en vivo** | El micrófono (celular/nodo) transmite audio por WebSocket; el sistema clasifica cada segundo. **1 micrófono = 1 bomba.** |
+| 🧠 **Diagnóstico con IA** | Random Forest sobre features MFCC: `NORMAL` 🟢 / `WARNING` 🟡 / `FAILURE` 🔴 + health score 0–100. |
+| 🔇 **Calibración de ruido** | Sustracción espectral del ruido de planta (capturado por micrófono o subiendo un WAV): el diferenciador que elimina falsas alarmas en ambiente minero. |
+| 🤖 **AURI, asistente del supervisor** | Gemini redacta sugerencias operativas en lenguaje natural (nunca órdenes — la decisión es de los procedimientos del sitio). |
+| 📄 **Reportes a la minera** | Al superar un umbral de alertas sostenidas, la IA genera un reporte gerencial (resumen ejecutivo + datos + acción) visible en el dashboard y **enviado por correo**. |
+| 📊 **Dashboard SCADA** | Vista de flota → sala de control por bomba: semáforo, gauge, tendencia, forma de onda, espectro y espectrograma — **todo calculado del audio real**. |
+| 📁 **Modo respaldo** | Reproducción de WAVs a ritmo real (1 s = 1 s) con barra de progreso — demo blindada sin hardware. |
+
+## Resultados del modelo
+
+Entrenado con **1,149 grabaciones reales** (dataset [MIMII](https://zenodo.org/record/3384388) de Hitachi, bomba `id_00`, fallas físicas reales) + aumento de datos de ruido y canal acústico. Features normalizados por RMS (el volumen del micrófono no afecta el diagnóstico).
+
+- **96.6% de recall a nivel de evento** (28/29 fallas detectadas) con **0% de falsas alarmas** en el test set.
+- Accuracy por ventana: 96.8% (split por archivo, sin fuga train/test).
+- Inferencia: ~50 ms por ventana, CPU estándar, modelo de 4.9 MB — sin GPU.
+- Robustez verificada: no genera falsas alarmas con **otra bomba real sonando al lado** (ni a 4× volumen).
+
+Detalle en `modelo/metrics.txt` y `modelo/matriz_confusion.png`.
+
+## Arquitectura
 
 ```
-aura-slurry/
-├── specs/           # Documentos SDD: requerimientos, diseño, tareas
-├── modelo/          # Integrante 1 — señal y clasificador (librosa + Random Forest)
-│   └── notebooks/   # exploración, matriz de confusión
-├── backend/         # Integrante 2 — FastAPI + WebSockets + REST
-├── frontend/        # Integrante 3 — React (Vite) + Material UI + Recharts
-└── demo_assets/     # WAVs de respaldo: normal, falla, ruido de mina
+   📱 Micrófono (celular/nodo)          📁 WAV de respaldo
+        │ WS /ws/audio (PCM 16 kHz)          │ POST /api/audio
+        ▼                                    ▼
+┌──────────────────────── BACKEND (FastAPI) ────────────────────────┐
+│  ventaneo 1 s → sustracción espectral → MFCC-20 → Random Forest   │
+│  umbral de alertas → reporte Gemini → correo SMTP                 │
+│  features de señal reales (waveform/espectro/f₀) por ventana      │
+└───────────────┬───────────────────────────────────────────────────┘
+                │ WS /ws/status (estado + señal + AURI + reportes)
+                ▼
+┌──────────────────────── FRONTEND (React) ─────────────────────────┐
+│  Flota de bombas → Sala de control: semáforo · gauge · tendencia  │
+│  firma acústica · AURI (viñeta) · panel de reportes · calibración │
+└───────────────────────────────────────────────────────────────────┘
 ```
 
-## Cómo correr (se completará durante el desarrollo)
+Contrato de red (inglés) documentado en **`backend/README.md`** (fuente de verdad).
+
+## Estructura del repositorio
+
+```
+├── modelo/          # señal + IA: senal.py (núcleo), signal_processing.py
+│                    # (adaptador), entrenar.py, modelo.joblib, metrics.txt
+├── backend/         # FastAPI: WebSockets, REST, AURI (Gemini), reportes SMTP
+├── frontend/        # React 19 + Vite + MUI: dashboard SCADA (dist/ lo sirve el backend)
+├── demo_assets/     # WAVs de demo + casos/ (suite de 10 casos validados)
+├── specs/           # documentos SDD (requerimientos, diseño, tareas)
+├── docs/            # comparativa vs análisis de vibraciones (base teórica)
+├── MANUAL_DEMO.md   # 📖 levantar el sistema y probar con celular como micrófono
+└── INTEGRACION.md   # playbook de integración y pruebas E2E
+```
+
+## Inicio rápido
 
 ```bash
-# Backend
+# 1. Dependencias
 pip install -r requirements.txt
-uvicorn backend.main:app --reload
+cd frontend && npm install && npm run build && cd ..
 
-# Frontend
-cd frontend && npm install && npm run dev
+# 2. Configuración (backend/.env — ver backend/.env.example)
+#    GEMINI_API_KEY=...          → recomendaciones y reportes IA (opcional)
+#    SMTP_USER/PASS/REPORT_...   → correo de reportes (opcional)
+
+# 3. Levantar TODO (el backend sirve también el dashboard)
+cd backend
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
 ```
 
----
+Dashboard: `http://localhost:8000` · Celular como micrófono: ver **`MANUAL_DEMO.md`**
+(misma red, IP de la laptop, y un flag de Chrome para permitir el micrófono en HTTP).
 
-## 🧊 Contratos de interfaz
+### Probar sin hardware
 
-> **⚠️ ACTUALIZACIÓN 2026-07-18: el contrato de red se estandarizó en INGLÉS**
-> (`status/confidence/alert`, estados `NORMAL|WARNING|FAILURE|CALIBRATING`).
-> La fuente de verdad es **`backend/README.md`**. La versión de abajo (español)
-> queda como referencia histórica del diseño.
-> Frontera del modelo: `modelo/signal_processing.py` (inglés) envuelve a `modelo/senal.py` (núcleo).
+Subir archivos de `demo_assets/casos/` desde el dashboard:
+`08_normal_con_ruido_mina.wav` (falsas alarmas) → calibrar con `07_ruido_mina.wav`
+→ subir `08` otra vez (🟢 verde). Guion completo en el encabezado de cada script.
 
-> **Regla de oro:** si cambia un nombre de campo aquí, se avisa a los 3 antes de tocar código.
+### Reentrenar el modelo
 
-### 1. Módulo Modelo → Backend (contrato Python, `modelo/senal.py`)
-
-```python
-def calibrar_ruido(audio_bytes_o_array) -> PerfilRuido: ...
-
-def clasificar_ventana(audio_array, perfil_ruido=None) -> dict:
-    # devuelve exactamente:
-    return {
-        "estado": "NORMAL" | "ADVERTENCIA" | "FALLA",
-        "health_score": int,      # 0-100
-        "confianza": float,       # 0.0-1.0 (prob de la clase predicha)
-        "alerta": str | None      # p.ej. "Posible cavitación/desgaste" o None
-    }
+```bash
+cd modelo
+python entrenar.py --data <ruta>/pump --ruido ../demo_assets/ruido_mina.wav
 ```
 
-### 2. Backend → Frontend (contrato de red)
+## Equipo y roles
 
-**WebSocket de estado (salida)** `ws://<host>/ws/estado` — mensajes en streaming:
+| Módulo | Responsabilidad |
+|---|---|
+| **Modelo / Señal** | Pipeline de audio, entrenamiento, contratos puros (`senal.py`) |
+| **Backend / Integración** | FastAPI, WebSockets, IA generativa, reportes, deploy |
+| **Frontend / Pitch** | Dashboard SCADA, UX, narrativa de negocio |
 
-```json
-{
-  "timestamp": "2026-07-18T10:30:00.000Z",
-  "estado": "FALLA",
-  "health_score": 22,
-  "confianza": 0.91,
-  "alerta": "Posible cavitación/desgaste",
-  "calibrado": true
-}
-```
+## Roadmap (visión de producto, no entregado)
 
-**WebSocket de ingesta (modo primario)** `ws://<host>/ws/audio` — el navegador envía el micrófono en vivo:
-- Mensajes **binarios**: chunks PCM Int16, **mono, 16 kHz** (~250 ms por chunk).
-- El backend bufferiza, arma ventanas de 1–2 s y clasifica en continuo.
+- Nodo edge por bomba (ESP32/Raspberry + micrófono MEMS ~$10) y flota multi-bomba real.
+- Validación cruzada con más unidades (`id_02`–`id_06` del dataset) y ruido de mina grabado en sitio.
+- AURI con RAG sobre manuales del fabricante e historial de mantenimiento del cliente.
+- Micrófono de contacto (piezo) para ambientes extremos; fusión con análisis de vibraciones
+  (ver `docs/COMPARATIVA_VIBRACIONES.md`: somos el triaje barato del método caro).
+- Persistencia, autenticación, multi-tenant, CI/CD.
 
-**REST (respaldo + calibración)**
+## Atribución
 
-```
-POST   /api/audio      (multipart: WAV pregrabado, RESPALDO) → inicia streaming sobre ese audio
-POST   /api/calibrar   (multipart: WAV de ruido)             → { "calibrado": true, "segundos": N }
-DELETE /api/calibrar                                          → { "calibrado": false }
-GET    /api/health                                            → { "status": "ok" }
-```
-
-### 3. Umbrales de estado (Doc 2 §3.4)
-
-Sea `p = probabilidad de "normal"`:
-
-| Condición | Estado | Color |
-|---|---|---|
-| `p ≥ 0.75` | NORMAL | 🟢 verde |
-| `0.45 ≤ p < 0.75` | ADVERTENCIA | 🟡 ámbar |
-| `p < 0.45` | FALLA | 🔴 rojo |
-
-`health_score = round(p * 100)`, suavizado con media móvil de ~5 ventanas.
-
----
-
-## Equipo
-
-3 integrantes: Modelo/Señal · Backend/Integración · Frontend/Pitch.
-Dataset: [MIMII](https://zenodo.org/record/3384388) (Hitachi), subconjunto `pump`, canal 1, 16 kHz.
+- Dataset: **MIMII** — Purohit et al., Hitachi Ltd. (2019), [Zenodo](https://zenodo.org/record/3384388), licencia CC BY-SA 4.0. Todas las bombas y fallas del sistema son grabaciones reales de este dataset.
+- IA generativa: Google Gemini (`gemini-flash-latest`).
