@@ -33,7 +33,9 @@ def generate_recommendation(status: str, health_score: int, alert: str) -> str:
         """
         
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            # ⚠️ NO volver a gemini-2.5-flash: da 404 para cuentas nuevas.
+            # Este alias apunta siempre al flash vigente.
+            model="gemini-flash-latest",
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.3,
