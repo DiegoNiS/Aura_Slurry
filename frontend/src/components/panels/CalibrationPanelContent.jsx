@@ -3,13 +3,16 @@
  * Records ambient noise from the mic and POSTs it to /api/calibrate
  * (via useCalibration). Shows a circular countdown and success state.
  */
+import { useRef, useState } from 'react';
 import { Box, Typography, Button, CircularProgress } from '@mui/material';
 import { motion } from 'framer-motion';
 import MicIcon from '@mui/icons-material/Mic';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined';
 import usePumpStore from '../../stores/usePumpStore';
 import useCalibration from '../../hooks/useCalibration';
+import { calibrateNoise } from '../../services/api';
 import { COLORS, AUDIO_CONFIG } from '../../utils/constants';
 import { PanelBody, Callout } from '../common/PanelBits';
 
@@ -18,6 +21,27 @@ export default function CalibrationPanelContent() {
   const { isCalibrating, progress, error, startCalibration, resetCalibration } = useCalibration();
   const duration = AUDIO_CONFIG.calibrationDuration;
   const remaining = Math.ceil(duration * (1 - progress / 100));
+
+  // Calibración subiendo un WAV de ruido (alternativa al micrófono)
+  const fileRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+
+  const handleUploadCalibration = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // permitir volver a elegir el mismo archivo
+    if (!file) return;
+    setUploadError(null);
+    setUploading(true);
+    try {
+      await calibrateNoise(file);
+      usePumpStore.setState({ calibrado: true });
+    } catch {
+      setUploadError('No se pudo calibrar con ese archivo (¿es un WAV válido?)');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <PanelBody sx={{ alignItems: 'stretch', gap: 2.5 }}>
@@ -61,6 +85,28 @@ export default function CalibrationPanelContent() {
         )}
 
         {error && <Typography sx={{ fontSize: '0.68rem', color: COLORS.status.critical, textAlign: 'center' }}>{error}</Typography>}
+
+        {/* alternativa: subir un WAV con el ruido de la planta */}
+        {!isCalibrating && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+            <Button
+              startIcon={uploading ? <CircularProgress size={14} sx={{ color: 'inherit' }} /> : <UploadFileIcon />}
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              size="small"
+              sx={{ color: COLORS.accent.blue, border: `1px solid ${COLORS.accent.blue}55`, px: 2, textTransform: 'none', '&:hover': { backgroundColor: `${COLORS.accent.blue}12` } }}
+            >
+              {uploading ? 'Calibrando…' : 'O subir WAV de ruido'}
+            </Button>
+            <Typography sx={{ fontSize: '0.58rem', color: COLORS.text.muted, textAlign: 'center' }}>
+              p. ej. demo_assets/casos/03_bomba_vecina.wav o 07_ruido_mina.wav
+            </Typography>
+            {uploadError && (
+              <Typography sx={{ fontSize: '0.64rem', color: COLORS.status.critical }}>{uploadError}</Typography>
+            )}
+            <input ref={fileRef} type="file" accept=".wav,audio/wav" onChange={handleUploadCalibration} style={{ display: 'none' }} />
+          </Box>
+        )}
       </Box>
 
       {calibrated && !isCalibrating && (
