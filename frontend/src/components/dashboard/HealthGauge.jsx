@@ -37,7 +37,7 @@ export default function HealthGauge({ size = 146 }) {
             [`& .${gaugeClasses.valueText}`]: { display: 'none' },
           }}
         />
-        <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+        <Box sx={{ position: 'absolute', top: '65%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
           <motion.div key={Math.round(healthScore / 5)} initial={{ scale: 1.08, opacity: 0.7 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.3 }}>
             <Typography sx={{ fontFamily: '"Rajdhani", monospace', fontWeight: 700, fontSize: '2.1rem', lineHeight: 1, color, textShadow: `0 0 18px ${color}44`, fontVariantNumeric: 'tabular-nums' }}>
               <AnimatedNumber value={healthScore} />
