@@ -8,7 +8,10 @@ import time
 from dotenv import load_dotenv
 
 from ws_manager import manager
-from mock_model import calibrate_noise, classify_window
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from modelo.signal_processing import calibrate_noise, classify_window
 from ai_recommender import get_pump_recommendation_async
 
 # Load env variables (for Gemini API Key)
