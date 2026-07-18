@@ -30,6 +30,7 @@ import Panel from '../common/Panel';
 import PanelHost from '../panels/PanelHost';
 
 import StatusSemaphore from '../dashboard/StatusSemaphore';
+import AuriRecommends from '../dashboard/AuriRecommends';
 import HealthGauge from '../dashboard/HealthGauge';
 import AiStatusCard from '../dashboard/AiStatusCard';
 import PumpSchematic from '../dashboard/PumpSchematic';
@@ -108,6 +109,7 @@ export default function ControlRoomLayout() {
             <Box sx={{ width: { xs: '100%', lg: 320 }, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 1.5, minHeight: { xs: 'auto', lg: 0 } }}>
               <Panel title="Estado del Activo" icon={<HealthAndSafetyIcon fontSize="inherit" />} sx={{ flex: '0 0 auto' }} dense>
                 <StatusSemaphore />
+                <AuriRecommends />
               </Panel>
               <Panel title="Salud de la Bomba" icon={<MonitorHeartIcon fontSize="inherit" />} accent={COLORS.status.normal} sx={{ flex: 1, minHeight: 190 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
