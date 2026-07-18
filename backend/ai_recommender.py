@@ -33,9 +33,7 @@ def generate_recommendation(status: str, health_score: int, alert: str) -> str:
         """
         
         response = client.models.generate_content(
-            # alias estable: siempre apunta al modelo flash vigente
-            # (gemini-2.5-flash dejó de estar disponible para cuentas nuevas)
-            model="gemini-flash-latest",
+            model="gemini-2.5-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.3,
@@ -43,8 +41,9 @@ def generate_recommendation(status: str, health_score: int, alert: str) -> str:
         )
         return response.text.strip()
     except Exception as e:
-        print(f"Error calling Gemini: {e}")
-        return "System note: Error generating recommendation."
+        import traceback
+        traceback.print_exc()
+        return f"System note: Error generating recommendation. {str(e)}"
 
 async def get_pump_recommendation_async(status: str, health_score: int, alert: str) -> str:
     """

@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import usePumpStore from '../../stores/usePumpStore';
 import { STATUS, STATUS_COLOR_MAP, COLORS } from '../../utils/constants';
 
-const LIGHT = 26;
+const LIGHT = 34;
 const lights = [
   { status: STATUS.NORMAL, color: COLORS.status.normal },
   { status: STATUS.WARNING, color: COLORS.status.warning },
@@ -60,17 +60,18 @@ export default function StatusSemaphore() {
   const info = STATUS_COLOR_MAP[current];
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, p: 0.5 }}>
       <Box
         sx={{
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
-          gap: 0.9,
-          p: 1,
-          borderRadius: 3,
-          backgroundColor: 'rgba(0,0,0,0.4)',
-          border: `1px solid ${COLORS.border.default}`,
+          gap: 1.2,
+          p: 1.5,
+          borderRadius: 4,
+          backgroundColor: '#05070a', // Darker to make lights pop
+          border: `1px solid ${COLORS.border.subtle}`,
+          boxShadow: 'inset 0 4px 10px rgba(0,0,0,0.5)',
         }}
       >
         <AnimatePresence>
@@ -85,12 +86,12 @@ export default function StatusSemaphore() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: 'rgba(0,0,0,0.55)',
-                borderRadius: 12,
+                backgroundColor: 'rgba(0,0,0,0.65)',
+                borderRadius: 16,
                 zIndex: 5,
               }}
             >
-              <CircularProgress size={30} sx={{ color: COLORS.status.calibrating }} />
+              <CircularProgress size={36} sx={{ color: COLORS.status.calibrating }} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -99,16 +100,25 @@ export default function StatusSemaphore() {
         ))}
       </Box>
 
-      <Box sx={{ minWidth: 0 }}>
-        <Typography sx={{ fontSize: '0.6rem', color: COLORS.text.muted, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 600 }}>
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        <Typography sx={{ fontSize: '0.65rem', color: COLORS.text.muted, letterSpacing: '0.15em', textTransform: 'uppercase', fontWeight: 700 }}>
           Estado del activo
         </Typography>
-        <motion.div key={current} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-          <Typography sx={{ fontFamily: '"Rajdhani", monospace', fontWeight: 700, fontSize: '1.3rem', lineHeight: 1.1, color: info?.main, letterSpacing: '0.02em' }}>
+        <motion.div key={current} initial={{ opacity: 0, x: -5 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, type: 'spring' }}>
+          <Typography sx={{ 
+            fontFamily: '"Rajdhani", monospace', 
+            fontWeight: 700, 
+            fontSize: '1.6rem', 
+            lineHeight: 1.1, 
+            color: info?.main, 
+            letterSpacing: '0.02em',
+            mt: 0.5,
+            textShadow: `0 0 12px ${info?.glow || 'transparent'}`
+          }}>
             {info?.label?.toUpperCase()}
           </Typography>
         </motion.div>
-        <Typography sx={{ fontSize: '0.66rem', color: COLORS.text.secondary, mt: 0.5, lineHeight: 1.4, maxWidth: 180 }}>
+        <Typography sx={{ fontSize: '0.75rem', color: COLORS.text.secondary, mt: 1, lineHeight: 1.4, maxWidth: 200, opacity: 0.9 }}>
           {info?.description}
         </Typography>
       </Box>
