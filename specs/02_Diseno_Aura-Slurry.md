@@ -13,7 +13,8 @@ Este documento traduce los requisitos del Documento 1 en una arquitectura concre
 │   React + Material UI (tema SCADA oscuro) + Recharts          │
 │   Semáforo · Gauge health · Gráfico temporal · Botón Calibrar │
 └───────────────▲───────────────────────────┬──────────────────┘
-                │ WebSocket (estado en vivo) │ REST (upload / calibrar)
+                │ WS estado (salida en vivo) │ WS audio (mic en vivo, primario)
+                │                            │ REST (WAV respaldo / calibrar)
                 │                            ▼
 ┌───────────────┴──────────────────────────────────────────────┐
 │                     BACKEND (Integrante 2)                     │
@@ -112,9 +113,14 @@ def clasificar_ventana(audio_array, perfil_ruido=None) -> dict:
 }
 ```
 
-**REST**
+**WebSocket de ingesta (modo primario — RF-01)** `ws://<host>/ws/audio` — el navegador envía el audio del micrófono en vivo:
+- Mensajes **binarios**: chunks PCM Int16, **mono, 16 kHz** (~250 ms por chunk sugerido). El frontend captura con `getUserMedia` + `AudioWorklet` y remuestrea a 16 kHz antes de enviar.
+- El backend bufferiza los chunks, arma ventanas de 1–2 s y las pasa al pipeline de inferencia de forma continua.
+- Mientras `/ws/audio` está activo, el sistema clasifica en tiempo real sin intervención del usuario; el resultado sale por `/ws/estado`.
+
+**REST (modo respaldo + calibración)**
 ```
-POST /api/audio         (multipart: archivo WAV pregrabado) → inicia streaming sobre ese audio
+POST /api/audio         (multipart: WAV pregrabado, RESPALDO) → inicia streaming sobre ese audio
 POST /api/calibrar      (multipart: WAV de ruido)          → { "calibrado": true, "segundos": N }
 DELETE /api/calibrar                                        → { "calibrado": false }
 GET  /api/health                                           → { "status": "ok" }
@@ -140,7 +146,7 @@ Layout tipo panel de control industrial, tema oscuro:
 │   GRÁFICO TEMPORAL del health score (Recharts)          │
 │   100 ┤▁▁▁▂▃▅▇▇▆▄▂▁  ← caída al introducir falla        │
 ├─────────────────────────────────────────────────────────┤
-│  [ 🎙 CALIBRAR RUIDO DE MINA ]   [ ▶ CARGAR AUDIO ]     │
+│  [ 🔴 MONITOREO EN VIVO ]  [ 🎙 CALIBRAR RUIDO ]  [ ▶ WAV ]│
 ├─────────────────────────────────────────────────────────┤
 │  PANEL DE ALERTAS                                        │
 │  🔴 10:30:00 — Posible cavitación/desgaste detectada     │
@@ -156,7 +162,7 @@ Estados visuales: `NORMAL` verde, `ADVERTENCIA` ámbar, `FALLA` rojo pulsante, `
 - **Datos de respaldo:** grabar/descargar con anticipación: (a) WAV normal, (b) WAV de falla, (c) WAV de ruido de mina (p. ej. audio de planta de YouTube). Guardar en `/demo_assets/`.
 - **Mock temprano:** Integrante 3 arranca contra un WebSocket falso que emite estados random, sin esperar al backend real. Integrante 2 arranca contra una función `clasificar_ventana` mock que devuelve el contrato antes de que el modelo real exista.
 - **Orden de integración:** primero cablear el contrato (mensajes falsos fluyendo end-to-end) → luego reemplazar mocks por implementación real módulo por módulo.
-- **Escenario de demo guionizado:** normal (verde) → introducir falla (rojo) → calibrar ruido → mostrar estabilización. Ensayarlo.
+- **Escenario de demo guionizado (en vivo):** micrófono captando la "bomba" en vivo → normal (verde) → introducir falla (rojo) → calibrar ruido → mostrar estabilización. Ensayarlo. Si el micrófono falla el día del evento, se repite el mismo guion con los WAV de respaldo (`POST /api/audio`).
 
 ---
 

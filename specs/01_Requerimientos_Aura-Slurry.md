@@ -14,7 +14,7 @@
 Aura-Slurry convierte un micrófono de bajo costo en un sensor de salud mecánica para bombas de pulpa, ventiladores y motores en plantas concentradoras. Captura el sonido del equipo, aísla su firma acústica del ruido de la planta y clasifica su estado en tiempo real, mostrándolo en un dashboard tipo SCADA.
 
 ### 1.2 Alcance del MVP (lo que SÍ se construye en la hackatón)
-- Pipeline de audio: captura → calibración de ruido (sustracción espectral) → extracción de features (MFCCs) → clasificación.
+- Pipeline de audio: captura **en vivo desde micrófono** (modo primario) → calibración de ruido (sustracción espectral) → extracción de features (MFCCs) → clasificación en tiempo real.
 - Modelo entrenado sobre el subconjunto **pump** del dataset MIMII.
 - Backend que sirve inferencia en streaming vía WebSockets.
 - Dashboard web en tiempo real con semáforo de estado, health score y gráfico histórico.
@@ -40,7 +40,7 @@ Aura-Slurry convierte un micrófono de bajo costo en un sensor de salud mecánic
 | C-2 | MIMII trae etiquetas **binarias** (`normal` / `abnormal`), no tres clases. | El estado intermedio "Advertencia" **se deriva del umbral de probabilidad del clasificador**, no de una etiqueta real. Esto se documenta como decisión honesta de producto. |
 | C-3 | Clasificador **Random Forest** sobre features MFCC. | Liviano, entrena en segundos sin GPU, defendible y explicable. Cumple el requisito de correr en CPU estándar. |
 | C-4 | Procesamiento en **estación local / servidor** durante la demo, no edge estricto. | Honestidad técnica declarada en la propuesta. El edge es roadmap. |
-| C-5 | La demo debe funcionar con **audio pregrabado** además de micrófono en vivo. | Blindaje: no depender de hardware ni de conectividad el día del evento. |
+| C-5 | El **modo primario es el micrófono en vivo** transmitiendo en streaming; el **audio pregrabado es el modo de respaldo** y debe funcionar siempre. | El producto se define como monitoreo en tiempo real; el respaldo blinda la demo ante fallas de hardware o conectividad el día del evento. |
 | C-6 | El repositorio debe estar en **GitHub antes del cutoff**. | Requisito de entrega de la hackatón. |
 
 ---
@@ -49,7 +49,7 @@ Aura-Slurry convierte un micrófono de bajo costo en un sensor de salud mecánic
 
 - **Operador de planta (usuario primario):** monitorea el dashboard, dispara la calibración de ruido, reacciona a alertas.
 - **Jurado (usuario de la demo):** observa el cambio de estado en vivo y el momento "wow" de la auto-calibración.
-- **Fuente de audio:** micrófono industrial / celular / archivo WAV pregrabado.
+- **Fuente de audio:** micrófono instalado en la bomba transmitiendo en vivo (primario) / archivo WAV pregrabado (respaldo).
 
 ---
 
@@ -58,7 +58,8 @@ Aura-Slurry convierte un micrófono de bajo costo en un sensor de salud mecánic
 Cada RF está etiquetado con el módulo responsable: **[M]** Modelo/Señal, **[B]** Backend, **[F]** Frontend.
 
 ### Ingesta y calibración
-- **RF-01 [B/F]:** El sistema debe aceptar audio desde (a) archivo WAV pregrabado y (b) micrófono en vivo vía navegador.
+- **RF-01 [B/F]:** El **modo primario** de operación es la captura **en vivo**: un micrófono instalado en la bomba transmite la señal de audio de forma continua al sistema, que la clasifica en tiempo real sin intervención del usuario. Como **modo secundario** (respaldo de demo y pruebas), el sistema debe aceptar también archivos WAV pregrabados.
+- **RF-01b [B]:** El backend debe recibir el audio en vivo como un **stream continuo de chunks** (no como archivo), bufferizarlo y ventanearlo para la inferencia sin cortes perceptibles.
 - **RF-02 [M/B]:** El sistema debe permitir grabar un perfil de "ruido de fondo de planta" de N segundos y almacenarlo en memoria para la sesión.
 - **RF-03 [M]:** Antes de clasificar, el sistema debe aplicar **sustracción espectral** del perfil de ruido calibrado sobre el audio entrante.
 - **RF-04 [F]:** El dashboard debe exponer un botón **"Calibrar Ruido de Mina"** que dispare RF-02.
@@ -103,8 +104,8 @@ Cada RF está etiquetado con el módulo responsable: **[M]** Modelo/Señal, **[B
 
 El proyecto se considera "entregable" cuando:
 
-1. Se reproduce audio **normal** y el dashboard permanece en **verde** con health score alto. *(cubre RF-06,07,08,09,13,14)*
-2. Se reproduce audio de **falla mezclado con ruido de mina** y el dashboard cambia a **rojo** con alerta. *(cubre RF-03,08,12,16)*
+1. Con el **micrófono en vivo** captando audio **normal** (o el WAV de respaldo), el dashboard permanece en **verde** con health score alto. *(cubre RF-01,06,07,08,09,13,14)*
+2. Al captar audio de **falla mezclado con ruido de mina** (en vivo o WAV de respaldo), el dashboard cambia a **rojo** con alerta. *(cubre RF-03,08,12,16)*
 3. Al pulsar **"Calibrar Ruido de Mina"**, el sistema captura el perfil y mejora/estabiliza la clasificación en vivo. *(cubre RF-02,03,04,17)*
 4. El backend emite estado por WebSocket de forma continua y el frontend lo consume sin recargar. *(cubre RF-10,15)*
 5. El repositorio está en **GitHub** con README, modelo serializado y script de entrenamiento. *(cubre RNF-05, C-6)*

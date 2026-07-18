@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+
+# Datasets (pesados — no versionar)
+dataset/
+mimii/
+*.zip
+
+# Entorno
+.env
+.DS_Store

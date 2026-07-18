@@ -51,7 +51,8 @@ Sin estimaciones de tiempo (por pedido). Las tareas están agrupadas por integra
 - ☐ **T2.4** Hacer que el WS emita primero datos **falsos** (random) para que Frontend arranque ya. *(integración temprana)*
 
 ### Bloque B — Pipeline real
-- ☐ **T2.5** `POST /api/audio`: recibir WAV pregrabado (multipart), buffer, y **ventanear** para inferencia continua. *(RF-01, RF-05)*
+- ☐ **T2.5** WebSocket de ingesta `/ws/audio` (**modo primario**): recibir chunks PCM del micrófono en vivo, bufferizar y **ventanear** para inferencia continua. *(RF-01, RF-01b, RF-05)*
+- ☐ **T2.5b** `POST /api/audio` (**modo respaldo**): recibir WAV pregrabado (multipart) y alimentar el mismo pipeline de ventaneo. *(RF-01, C-5)*
 - ☐ **T2.6** Reemplazar el mock por la `clasificar_ventana` real del Integrante 1 e ir emitiendo el estado por WS. *(RF-07, RF-08, RF-09)*
 - ☐ **T2.7** Loop de streaming: por cada ventana → clasificar → emitir mensaje del contrato 4.2 por WebSocket. *(RF-10)*
 - ☐ **T2.8** Incluir en cada mensaje el flag `calibrado` y la `alerta`. *(RF-12)*
@@ -60,7 +61,7 @@ Sin estimaciones de tiempo (por pedido). Las tareas están agrupadas por integra
 - ☐ **T2.9** `POST /api/calibrar`: recibir WAV de ruido → llamar `calibrar_ruido` → guardar `perfil_ruido` en estado de sesión. *(RF-02)*
 - ☐ **T2.10** `DELETE /api/calibrar`: limpiar el perfil. *(RF-02)*
 - ☐ **T2.11** Pasar el `perfil_ruido` activo a cada llamada de `clasificar_ventana`. *(RF-03)*
-- ☐ **T2.12** Soportar **entrada de micrófono en vivo** vía navegador si da tiempo; si no, WAV pregrabado es suficiente (C-5). *(RF-01)*
+- ☐ **T2.12** Robustez del stream en vivo: reconexión del `/ws/audio` si se corta, y conmutación limpia entre modo en vivo y modo respaldo sin reiniciar el servidor. *(RF-01, C-5)*
 - ☐ **T2.13** Habilitar **CORS** para el frontend. *(integración)*
 
 ---
@@ -81,22 +82,23 @@ Sin estimaciones de tiempo (por pedido). Las tareas están agrupadas por integra
 - ☐ **T3.8** Estado visual **"CALIBRANDO"** (azul + spinner). *(RF-17)*
 
 ### Bloque C — Controles y demo
-- ☐ **T3.9** Botón **"Calibrar Ruido de Mina"** → `POST /api/calibrar` con el WAV de ruido. *(RF-04, RF-02)*
-- ☐ **T3.10** Botón **"Cargar Audio"** → `POST /api/audio` con WAV normal o de falla. *(RF-01)*
-- ☐ **T3.11** Indicador global **CALIBRADO / NO CALIBRADO** leyendo el flag del WS. *(RF-17)*
+- ☐ **T3.9** Botón **"Monitoreo en Vivo"** (**modo primario**): capturar micrófono con `getUserMedia` + `AudioWorklet`, remuestrear a 16 kHz mono Int16 y enviar chunks por `/ws/audio`. *(RF-01, RF-01b)*
+- ☐ **T3.10** Botón **"Calibrar Ruido de Mina"** → `POST /api/calibrar` con el WAV de ruido (o grabando N segundos del micrófono en vivo). *(RF-04, RF-02)*
+- ☐ **T3.11** Botón **"Cargar Audio"** (**modo respaldo**) → `POST /api/audio` con WAV normal o de falla. *(RF-01, C-5)*
+- ☐ **T3.12** Indicador global **CALIBRADO / NO CALIBRADO** y **EN VIVO / RESPALDO** leyendo los flags del WS. *(RF-17)*
 
 ### Bloque D — Narrativa (rol de dominio de José)
-- ☐ **T3.12** Redactar el **caso de negocio**: costo de downtime de bomba de pulpa vs. equipos "ciegos" sin monitoreo. *(pitch)*
-- ☐ **T3.13** Escribir el **guion del pitch** siguiendo la ruta: gancho → demo → diferenciador (calibración en vivo) → cierre ($50 vs $5,000+). *(pitch)*
-- ☐ **T3.14** Preparar la lámina de **roadmap** (edge, fusión de sensores, impacto social/OEFA) como *visión*, no como entregado. *(escalabilidad, 20% del puntaje)*
-- ☐ **T3.15** Aportar credibilidad de campo (experiencia real en Southern Peru) en el guion. *(RNF-04)*
+- ☐ **T3.13** Redactar el **caso de negocio**: costo de downtime de bomba de pulpa vs. equipos "ciegos" sin monitoreo. *(pitch)*
+- ☐ **T3.14** Escribir el **guion del pitch** siguiendo la ruta: gancho → demo en vivo con micrófono → diferenciador (calibración en vivo) → cierre ($50 vs $5,000+). *(pitch)*
+- ☐ **T3.15** Preparar la lámina de **roadmap** (edge, fusión de sensores, impacto social/OEFA) como *visión*, no como entregado. *(escalabilidad, 20% del puntaje)*
+- ☐ **T3.16** Aportar credibilidad de campo (experiencia real en Southern Peru) en el guion. *(RNF-04)*
 
 ---
 
 ## 🔗 Integración final (los 3 juntos)
 
 - ☐ **TI.1** Reemplazar todos los mocks por implementación real y verificar el flujo end-to-end. *(integración)*
-- ☐ **TI.2** Correr el **escenario de demo guionizado**: normal (verde) → falla (rojo) → calibrar → estabilización. *(criterios de aceptación 1–4)*
+- ☐ **TI.2** Correr el **escenario de demo guionizado con micrófono en vivo**: normal (verde) → falla (rojo) → calibrar → estabilización; repetirlo también en modo respaldo (WAV). *(criterios de aceptación 1–4)*
 - ☐ **TI.3** Verificar los **5 criterios de aceptación** del Doc 1 §6 uno por uno.
 - ☐ **TI.4** Ensayar el pitch cronometrado con la demo en vivo. *(pitch)*
 - ☐ **TI.5** **Commit y push final a GitHub** antes del cutoff, con README, `modelo.joblib` y `demo_assets/`. *(C-6, RNF-05)*
