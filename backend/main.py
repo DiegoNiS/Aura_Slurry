@@ -235,6 +235,14 @@ async def upload_fallback_audio(file: UploadFile = File(...)):
 # Se monta al final para no tapar /api/* ni /ws/*.
 _DIST = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
 if os.path.isdir(_DIST):
+    import mimetypes
+
     from fastapi.staticfiles import StaticFiles
+
+    # En Windows el registro puede mapear .js a text/plain y el navegador
+    # rechaza los módulos ES con ese MIME — forzar los tipos correctos.
+    mimetypes.add_type("application/javascript", ".js")
+    mimetypes.add_type("text/css", ".css")
+    mimetypes.add_type("image/svg+xml", ".svg")
 
     app.mount("/", StaticFiles(directory=_DIST, html=True), name="dashboard")
