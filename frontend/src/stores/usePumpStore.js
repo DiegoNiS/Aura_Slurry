@@ -78,6 +78,9 @@ const usePumpStore = create((set, get) => ({
       healthHistory: updatedHistory,
       alerts: updatedAlerts,
       ...(meta.inferenceMs != null ? { lastInferenceMs: meta.inferenceMs } : {}),
+      // metadata REAL del procesamiento (medida por el backend por ventana)
+      ...(data.inference_ms != null ? { lastInferenceMs: data.inference_ms } : {}),
+      ...(data.model_loaded != null ? { modelLoaded: data.model_loaded } : {}),
       // recomendación IA (Gemini) generada por el backend — auditoría #3
       ...(data.recommendation !== undefined ? { recommendation: data.recommendation } : {}),
       // reporte de incidente nuevo (dedupe por id)

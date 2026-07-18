@@ -26,6 +26,21 @@ def features_para_ui(window, result: dict) -> dict:
     feats = signal_features(window)
     feats["anomalyScore"] = 100 - result["health_score"]
     return feats
+
+
+def clasificar_medido(window, noise_profile):
+    """Clasifica midiendo la latencia REAL de inferencia (para el dashboard:
+    antes se mostraba un valor hardcodeado). Devuelve (result, extra)."""
+    import time as _t
+
+    t0 = _t.perf_counter()
+    result = classify_window(window, noise_profile)
+    extra = {
+        "inference_ms": int((_t.perf_counter() - t0) * 1000),
+        "model_loaded": "Model not loaded" not in (result.get("alert") or ""),
+        "signal": features_para_ui(window, result),
+    }
+    return result, extra
 from ai_recommender import get_pump_recommendation_async
 from report_generator import build_incident, generate_incident_report, send_report_email
 
@@ -370,14 +385,10 @@ async def websocket_audio(websocket: WebSocket):
                 # Remove the processed window from the buffer
                 buffer = buffer[WINDOW_SIZE_BYTES:]
                 
-                # Classify the window
-                result = classify_window(window, app_state["noise_profile"])
-
-                # Build and broadcast payload
-                await build_and_broadcast_payload(result, extra={
-                    "source": "live",
-                    "signal": features_para_ui(window, result),
-                })
+                # Classify the window (con latencia real medida)
+                result, extra = clasificar_medido(window, app_state["noise_profile"])
+                extra["source"] = "live"
+                await build_and_broadcast_payload(result, extra=extra)
                 
     except WebSocketDisconnect:
         print("Audio client disconnected")
@@ -418,13 +429,13 @@ async def upload_fallback_audio(file: UploadFile = File(...)):
                 offset += WINDOW_SIZE_BYTES
                 position_s += WINDOW_SECONDS
 
-                result = classify_window(window, app_state["noise_profile"])
-                await build_and_broadcast_payload(result, extra={
+                result, extra = clasificar_medido(window, app_state["noise_profile"])
+                extra.update({
                     "source": "file",
                     "file_position": position_s,
                     "file_duration": total_s,
-                    "signal": features_para_ui(window, result),
                 })
+                await build_and_broadcast_payload(result, extra=extra)
 
                 # Simulate real time passing (1 second)
                 await asyncio.sleep(WINDOW_SECONDS)
