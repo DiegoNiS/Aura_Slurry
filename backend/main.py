@@ -167,6 +167,10 @@ async def trigger_recommendation_if_needed(status: str, health_score: int, alert
     current_time = time.time()
     time_since_last = current_time - app_state["last_recommendation_time"]
     
+    # SAFETY: Bloqueo anti-spam (Debounce) para la API de Gemini (Límite: 5 RPM)
+    if time_since_last < 30:
+        return
+    
     if status != app_state["last_status"] or time_since_last >= RECOMMENDATION_COOLDOWN_SECONDS:
         # Update trackers immediately to prevent spamming
         app_state["last_status"] = status
