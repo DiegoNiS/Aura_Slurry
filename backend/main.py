@@ -11,7 +11,12 @@ from ws_manager import manager
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from modelo.signal_processing import calibrate_noise, classify_window
+from modelo.signal_processing import (
+    calibrate_noise,
+    classify_window,
+    reset_smoothing,
+    wav_bytes_to_pcm16,
+)
 from ai_recommender import get_pump_recommendation_async
 
 # Load env variables (for Gemini API Key)
@@ -36,6 +41,10 @@ app_state = {
     "last_status": None,
     "last_recommendation_time": 0.0
 }
+
+# MOCK_WHEN_IDLE=0 desactiva el generador mock (para demo/pruebas reales,
+# donde no debe haber datos inventados cuando no fluye audio)
+MOCK_WHEN_IDLE = os.getenv("MOCK_WHEN_IDLE", "1") == "1"
 
 # Audio constants
 SAMPLE_RATE = 16000
@@ -97,7 +106,7 @@ async def mock_data_generator():
     This unblocks the frontend development so they can see live updates.
     """
     while True:
-        if not app_state["processing_audio"]:
+        if MOCK_WHEN_IDLE and not app_state["processing_audio"]:
             p = random.uniform(0.7, 1.0)
             status = "NORMAL" if p >= 0.75 else "WARNING"
             result = {
@@ -160,8 +169,9 @@ async def websocket_audio(websocket: WebSocket):
         return
         
     app_state["processing_audio"] = True
+    reset_smoothing()  # nueva fuente de audio → limpiar media móvil
     buffer = bytearray()
-    
+
     try:
         while True:
             data = await websocket.receive_bytes()
@@ -193,8 +203,12 @@ async def upload_fallback_audio(file: UploadFile = File(...)):
         raise HTTPException(status_code=409, detail="Already processing audio from another source")
         
     app_state["processing_audio"] = True
-    audio_bytes = await file.read()
-    
+    raw = await file.read()
+    # Decodificar el WAV (header, subtipo float/int, canales, sr) a PCM
+    # Int16 mono 16 kHz — ventanear el archivo crudo corrompería el audio.
+    audio_bytes = wav_bytes_to_pcm16(raw)
+    reset_smoothing()
+
     # Simple background processing (for MVP)
     async def process_file(data: bytes):
         try:

@@ -30,7 +30,13 @@ cd frontend && npm install && npm run dev
 
 ---
 
-## 🧊 Contratos de interfaz (CONGELADOS — Doc 2 §4)
+## 🧊 Contratos de interfaz
+
+> **⚠️ ACTUALIZACIÓN 2026-07-18: el contrato de red se estandarizó en INGLÉS**
+> (`status/confidence/alert`, estados `NORMAL|WARNING|FAILURE|CALIBRATING`).
+> La fuente de verdad es **`backend/README.md`**. La versión de abajo (español)
+> queda como referencia histórica del diseño.
+> Frontera del modelo: `modelo/signal_processing.py` (inglés) envuelve a `modelo/senal.py` (núcleo).
 
 > **Regla de oro:** si cambia un nombre de campo aquí, se avisa a los 3 antes de tocar código.
 

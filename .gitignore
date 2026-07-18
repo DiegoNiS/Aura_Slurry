@@ -16,3 +16,6 @@ mimii/
 # Entorno
 .env
 .DS_Store
+
+# Entorno local del frontend (IP de la red del momento)
+frontend/.env.local

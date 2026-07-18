@@ -80,10 +80,10 @@ def main() -> None:
     mezcla = falla + args.ganancia * ruido[: len(falla)]
     mezcla = (mezcla / np.abs(mezcla).max() * 0.9).astype(np.float32)
 
-    sf.write(AQUI / "normal.wav", normal, SR)
-    sf.write(AQUI / "falla.wav", falla, SR)
-    sf.write(AQUI / "ruido_mina.wav", ruido, SR)
-    sf.write(AQUI / "falla_con_ruido.wav", mezcla, SR)
+    sf.write(AQUI / "normal.wav", normal, SR, subtype="PCM_16")
+    sf.write(AQUI / "falla.wav", falla, SR, subtype="PCM_16")
+    sf.write(AQUI / "ruido_mina.wav", ruido, SR, subtype="PCM_16")
+    sf.write(AQUI / "falla_con_ruido.wav", mezcla, SR, subtype="PCM_16")
 
     print(f"Assets generados en {AQUI} (fuente: {args.id}, ruido {origen}):")
     for nombre in ("normal.wav", "falla.wav", "ruido_mina.wav", "falla_con_ruido.wav"):
