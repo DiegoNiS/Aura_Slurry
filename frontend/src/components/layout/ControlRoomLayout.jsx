@@ -19,7 +19,6 @@ import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import usePumpStore from '../../stores/usePumpStore';
 import useSignalStore from '../../stores/useSignalStore';
 import useAuraWebSocket from '../../hooks/useAuraWebSocket';
-import useSignalSimulator from '../../hooks/useSignalSimulator';
 
 import { COLORS } from '../../utils/constants';
 import BlueprintBackground from './BlueprintBackground';
@@ -56,9 +55,8 @@ export default function ControlRoomLayout() {
   const startMockSimulation = usePumpStore((s) => s.startMockSimulation);
   const stopMockSimulation = usePumpStore((s) => s.stopMockSimulation);
 
-  // Live telemetry (falls back to mock) + acoustic signal generator
+  // Live telemetry
   useAuraWebSocket();
-  useSignalSimulator({ fps: 8 });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -132,20 +130,35 @@ export default function ControlRoomLayout() {
             </Box>
 
             {/* RIGHT — acoustic signal */}
-            <Box sx={{ width: { xs: '100%', lg: 330 }, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 1, minHeight: { xs: 'auto', lg: 0 }, overflowY: { lg: 'auto' } }}>
-              <Panel title="Firma Acústica" icon={<GraphicEqIcon fontSize="inherit" />} accent={COLORS.accent.cyan} sx={{ flex: '0 0 auto' }} dense>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
-                  <WaveformChart height={60} />
-                  <SpectrumChart height={72} />
+            <Box sx={{ 
+              width: { xs: '100%', lg: 330 }, 
+              flexShrink: 0, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: 1, 
+              minHeight: { xs: 'auto', lg: 0 }, 
+              overflowY: { xs: 'visible', lg: 'auto' },
+              pr: { xs: 0, lg: 0.5 },
+              '&::-webkit-scrollbar': { width: '4px' },
+              '&::-webkit-scrollbar-track': { background: 'transparent' },
+              '&::-webkit-scrollbar-thumb': { background: COLORS.border.default, borderRadius: '4px' }
+            }}>
+              <Panel title="Firma Acústica" icon={<GraphicEqIcon fontSize="inherit" />} accent={COLORS.accent.cyan} sx={{ flex: '0 0 auto', height: 'auto' }} dense>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                  <WaveformChart height={70} />
+                  <SpectrumChart height={80} />
                 </Box>
               </Panel>
-              <Panel title="Métricas de Señal" icon={<ShowChartIcon fontSize="inherit" />} accent={COLORS.accent.purple} sx={{ flex: '0 0 auto' }} dense>
+
+              <Panel title="Métricas de Señal" icon={<ShowChartIcon fontSize="inherit" />} accent={COLORS.accent.purple} sx={{ flex: '0 0 auto', height: 'auto' }} dense>
                 <SignalMeters />
               </Panel>
-              <Panel title="Espectrograma" icon={<GridOnIcon fontSize="inherit" />} accent={COLORS.accent.amber} sx={{ flex: '0 0 auto' }} dense>
-                <Spectrogram height={80} />
+
+              <Panel title="Espectrograma" icon={<GridOnIcon fontSize="inherit" />} accent={COLORS.accent.amber} sx={{ flex: '0 0 auto', height: 'auto' }} bodySx={{ p: 0.5 }} dense>
+                <Spectrogram height={90} />
               </Panel>
-              <Panel title="Diagnóstico de Señal" icon={<MonitorHeartIcon fontSize="inherit" />} sx={{ flex: '0 0 auto' }} dense>
+
+              <Panel title="Diagnóstico de Señal" icon={<MonitorHeartIcon fontSize="inherit" />} sx={{ flex: '0 0 auto', height: 'auto' }} dense>
                 <DiagnosticRadials />
               </Panel>
             </Box>
