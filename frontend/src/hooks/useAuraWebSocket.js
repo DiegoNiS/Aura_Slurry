@@ -73,7 +73,6 @@ export default function useAuraWebSocket() {
             enqueueSnackbar(data.alert, {
               variant: data.status === STATUS.FAILURE ? 'error' : 'warning',
               autoHideDuration: 5000,
-              anchorOrigin: { vertical: 'top', horizontal: 'right' },
               style: {
                 backgroundColor: '#16202D',
                 border: `1px solid ${color?.main || '#FF4D5E'}`,

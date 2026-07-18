@@ -7,8 +7,9 @@
  *   - SnackbarProvider (notistack alerts)
  *   - ControlRoomLayout (single-view control room)
  */
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import { SnackbarProvider } from 'notistack';
+import { ThemeProvider, CssBaseline, IconButton } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import { SnackbarProvider, closeSnackbar } from 'notistack';
 import auraTheme from './theme/auraTheme';
 import ControlRoomLayout from './components/layout/ControlRoomLayout';
 import FleetView from './components/layout/FleetView';
@@ -33,11 +34,18 @@ export default function App() {
     <ThemeProvider theme={auraTheme}>
       <CssBaseline />
       <SnackbarProvider
-        maxSnack={4}
+        maxSnack={3}
         autoHideDuration={4000}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        // abajo al centro: arriba tapaban los botones de acción de la barra
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         dense
         preventDuplicate
+        // toda notificación se puede cerrar con la X
+        action={(key) => (
+          <IconButton size="small" onClick={() => closeSnackbar(key)} sx={{ color: 'inherit' }}>
+            <CloseIcon sx={{ fontSize: 15 }} />
+          </IconButton>
+        )}
       >
         {selectedPump ? <ControlRoomLayout /> : <FleetView />}
       </SnackbarProvider>
