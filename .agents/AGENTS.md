@@ -1,45 +1,47 @@
-# Contexto Global del Proyecto: Aura-Slurry
+# Project Global Context: Aura-Slurry
 
-**Aura-Slurry** es un sistema de mantenimiento predictivo acústico de bajo costo para bombas de pulpa en minería, desarrollado para la Hackatón IA — FLIT 2026. 
+**Aura-Slurry** is a low-cost acoustic predictive maintenance system for slurry pumps in mining, developed for the IA Hackathon — FLIT 2026. 
 
-**Objetivo principal:** Convertir un micrófono de bajo costo en un sensor de salud mecánica. Captura el sonido del equipo, aísla su firma acústica del ruido de la planta mediante sustracción espectral y clasifica su estado en tiempo real.
+**Main Objective:** Convert a low-cost microphone into a mechanical health sensor. It captures live equipment sound, isolates its acoustic signature from plant noise using spectral subtraction, and classifies its status in real-time.
 
-## Arquitectura y Stack Tecnológico
-El proyecto está dividido en tres módulos principales, correspondientes a los 3 integrantes del equipo:
+## Architecture and Tech Stack
+The project is divided into three main modules, corresponding to the 3 team members:
 
-1. **Modelo / Señal (Python):** 
+1. **Model / Signal (Python):** 
    - **Stack:** Python 3.10+, `librosa`, `numpy`, `scikit-learn` (Random Forest), `joblib`.
-   - **Responsabilidad:** Funciones puras para procesar audio, extraer features (MFCC) y predecir.
+   - **Responsibility:** Pure functions to process audio, extract features (MFCC), and predict.
 2. **Backend (Python):**
    - **Stack:** `FastAPI`, `uvicorn`, `websockets`, `python-multipart`.
-   - **Responsabilidad:** Orquestar el modelo y exponer endpoints REST y un WebSocket para emitir el estado en tiempo real.
+   - **Responsibility:** Orchestrate the model and expose REST endpoints and WebSockets (one for live audio ingestion and another to emit real-time status).
 3. **Frontend (Web):**
-   - **Stack:** `React` (Vite), `Material UI` (Tema oscuro SCADA), `Recharts`.
-   - **Responsabilidad:** Dashboard en tiempo real que consume el WebSocket (semáforo, gauge, gráfico).
+   - **Stack:** `React` (Vite), `Material UI` (Dark SCADA theme), `Recharts`.
+   - **Responsibility:** Real-time dashboard that consumes the status and captures microphone audio, sending it via WebSocket to the backend.
 
-## Reglas Críticas para Agentes
+## Critical Rules for Agents
 
-1. **Respetar los Contratos de Interfaz:** Existe un contrato estricto definido entre los módulos. **NO modifiques los contratos (nombres de variables, estructura de JSONs, endpoints) sin consultar explícitamente al usuario**.
-   - *Contrato Python (Modelo -> Backend):* `clasificar_ventana` retorna `{ "estado": str, "health_score": int, "confianza": float, "alerta": str | None }`
-   - *Contrato Red (Backend -> Frontend):* El WebSocket envía `{ "timestamp": str, "estado": str, "health_score": int, "confianza": float, "alerta": str | None, "calibrado": bool }`
+1. **Respect Interface Contracts:** There is a strict contract defined between modules. **DO NOT modify the contracts (variable names, JSON structure, endpoints) without explicitly consulting the user**.
+   - *Python Contract (Model -> Backend):* `classify_window` returns `{ "status": str, "health_score": int, "confidence": float, "alert": str | None }`
+   - *Output Network Contract (Backend -> Frontend):* The WebSocket `/ws/status` sends `{ "timestamp": str, "status": str, "health_score": int, "confidence": float, "alert": str | None, "calibrated": bool, "recommendation": str | None }`
+   - *Input Network Contract (Frontend -> Backend):* The WebSocket `/ws/audio` receives binary PCM Int16 chunks, mono, 16 kHz.
 
-2. **Trabajo en Paralelo (Desacoplamiento):**
-   - Si trabajas en el Backend y el Modelo no está listo, utiliza un **mock** (`clasificar_ventana` que devuelva datos falsos con la misma estructura).
-   - Si trabajas en el Frontend y el Backend no está listo, utiliza un **mock de WebSocket** que emita los eventos según el contrato.
+2. **Parallel Work (Decoupling):**
+   - If working on the Backend and the Model is not ready, use a **mock** (`classify_window` that returns fake data with the same structure).
+   - If working on the Frontend and the Backend is not ready, use a **WebSocket mock** that emits events according to the contract.
 
-3. **Restricciones del MVP:**
-   - Todo debe correr en CPU estándar. No usar dependencias que requieran GPU obligatoria.
-   - El modelo entrenará usando el dataset MIMII (japonés, subconjunto `pump`).
-   - Siempre debe existir soporte para uso de archivos WAV pregrabados como blindaje para la demo en vivo.
+3. **MVP Restrictions:**
+   - Everything must run on standard CPU. Do not use dependencies that require a GPU.
+   - The model will train using the MIMII dataset (Japanese, `pump` subset).
+   - The **primary mode** is live audio streaming via microphone. 
+   - There must always be support for using pre-recorded WAV files as a **fallback mode**, which must always work.
 
-4. **Estructura del Proyecto:**
-   - `modelo/` -> Scripts de entrenamiento y `senal.py` (inferencia pura).
-   - `backend/` -> `main.py` y orquestación WebSocket/REST.
-   - `frontend/` -> Cliente React.
-   - `demo_assets/` -> Archivos WAV de respaldo para la presentación.
+4. **Project Structure:**
+   - `modelo/` -> Training scripts and `signal_processing.py` (pure inference).
+   - `backend/` -> `main.py` and WebSocket/REST orchestration.
+   - `frontend/` -> React client.
+   - `demo_assets/` -> Fallback WAV files for presentation.
 
-5. **Progreso y Tareas:**
-   - Siempre ten en cuenta las tareas planificadas en `specs/03_Tareas_Aura-Slurry.md`. Si se te pide avanzar con el proyecto, asegúrate de preguntar en qué tarea/módulo enfocarte o leer el estado actual.
+5. **Progress and Tasks:**
+   - Always keep in mind the tasks planned in `specs/03_Tareas_Aura-Slurry.md`. If asked to advance with the project, make sure to ask which task/module to focus on or read the current status.
 
-6. **Commits y Control de Versiones:**
-   - Se deben generar **commits automáticos y ordenados** (ej. Conventional Commits) al finalizar cada incremento lógico y seguro del que estemos seguros, para mantener un registro claro del progreso en la hackatón.
+6. **Commits and Version Control:**
+   - **Automatic and orderly commits** (e.g., Conventional Commits) must be generated at the end of each logical and safe increment that we are sure of, to maintain a clear record of progress in the hackathon.

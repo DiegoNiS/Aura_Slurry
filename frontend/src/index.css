@@ -1,0 +1,67 @@
+/**
+ * Global styles — Aura-Slurry Industrial Dashboard
+ * Minimal resets and utility styles.
+ * Most styling is handled by the MUI theme.
+ */
+
+/* ─── Reset ──────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-height: 100vh;
+  background-color: #0B0F14;
+  color: #F5F7FA;
+  overflow-x: hidden;
+}
+
+/* ─── Selection ──────────────────────────────────────────────────── */
+::selection {
+  background-color: rgba(0, 229, 255, 0.2);
+  color: #F5F7FA;
+}
+
+/* ─── Focus ring ─────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid rgba(0, 229, 255, 0.5);
+  outline-offset: 2px;
+}
+
+/* ─── Remove default Vite styles ─────────────────────────────────── */
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* ─── Smooth transitions for interactive elements ────────────────── */
+a,
+button,
+input,
+textarea,
+select {
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* ─── Number input arrows (hide for cleaner HMI look) ────────────── */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+}
