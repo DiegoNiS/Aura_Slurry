@@ -22,7 +22,7 @@ export default function AuriRecommends() {
         transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
         src={auraBody}
         alt="AURI"
-        sx={{ width: 54, flexShrink: 0, filter: 'drop-shadow(0 4px 10px rgba(53,198,244,0.25))' }}
+        sx={{ width: 84, flexShrink: 0, filter: 'drop-shadow(0 6px 14px rgba(53,198,244,0.35))' }}
       />
 
       {/* viñeta de diálogo */}

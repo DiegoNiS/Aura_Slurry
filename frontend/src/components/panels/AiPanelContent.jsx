@@ -33,7 +33,7 @@ export default function AiPanelContent() {
             component="img"
             src={auraBody}
             alt="AURI"
-            sx={{ width: 52, flexShrink: 0, borderRadius: 1.5, border: `1px solid ${COLORS.border.default}`, backgroundColor: COLORS.bg.surface }}
+            sx={{ width: 72, flexShrink: 0, filter: 'drop-shadow(0 4px 10px rgba(53,198,244,0.3))' }}
           />
           <Typography sx={{ fontSize: '0.76rem', color: recommendation ? COLORS.text.primary : COLORS.text.muted, lineHeight: 1.45 }}>
             {recommendation || 'Aún no hay recomendación — se genera al cambiar el estado de la bomba.'}
