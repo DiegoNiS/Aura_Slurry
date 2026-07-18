@@ -27,6 +27,17 @@ app = FastAPI(title="Aura-Slurry Backend")
 # CORS: wildcard + credentials es inválido según la spec (auditoría #2).
 # No usamos cookies ni credenciales → credentials en False hace válido el "*".
 # En producción: lista explícita de orígenes vía variable de entorno.
+@app.middleware("http")
+async def no_cache_html(request, call_next):
+    """El index.html no debe cachearse: tras cada rebuild del frontend el
+    navegador debe pedir el HTML nuevo (que referencia los JS con hash nuevo).
+    Sin esto, los usuarios ven versiones viejas hasta borrar caché a mano."""
+    response = await call_next(request)
+    if response.headers.get("content-type", "").startswith("text/html"):
+        response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 app.add_middleware(
     CORSMiddleware,
     # Origen configurable para el deploy (Render) — default "*" para la demo
