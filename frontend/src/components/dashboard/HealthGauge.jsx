@@ -10,19 +10,19 @@ import usePumpStore from '../../stores/usePumpStore';
 import { COLORS, colorFromScore } from '../../utils/constants';
 import AnimatedNumber from '../common/AnimatedNumber';
 
-export default function HealthGauge({ size = 138 }) {
+export default function HealthGauge({ size = 146 }) {
   const healthScore = usePumpStore((s) => s.healthScore);
   const confidence = usePumpStore((s) => s.confidence);
   const color = colorFromScore(healthScore);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <Box sx={{ position: 'relative', width: size, height: size * 0.82 }}>
+      <Box sx={{ position: 'relative', width: size, height: size }}>
         <Gauge
           value={healthScore}
           startAngle={-110}
           endAngle={110}
-          innerRadius="70%"
+          innerRadius="78%"
           outerRadius="100%"
           cornerRadius="50%"
           sx={{
@@ -37,19 +37,19 @@ export default function HealthGauge({ size = 138 }) {
             [`& .${gaugeClasses.valueText}`]: { display: 'none' },
           }}
         />
-        <Box sx={{ position: 'absolute', top: '52%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+        <Box sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
           <motion.div key={Math.round(healthScore / 5)} initial={{ scale: 1.08, opacity: 0.7 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.3 }}>
             <Typography sx={{ fontFamily: '"Rajdhani", monospace', fontWeight: 700, fontSize: '2.1rem', lineHeight: 1, color, textShadow: `0 0 18px ${color}44`, fontVariantNumeric: 'tabular-nums' }}>
               <AnimatedNumber value={healthScore} />
             </Typography>
           </motion.div>
-          <Typography sx={{ fontSize: '0.55rem', color: COLORS.text.muted, letterSpacing: '0.14em', mt: -0.3 }}>
+          <Typography sx={{ fontSize: '0.52rem', color: COLORS.text.muted, letterSpacing: '0.12em', mt: -0.2 }}>
             HEALTH SCORE
           </Typography>
         </Box>
       </Box>
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1.5 }}>
         <Typography sx={{ fontSize: '0.6rem', color: COLORS.text.muted }}>Confianza IA</Typography>
         <Box sx={{ width: 72, height: 4, borderRadius: 2, backgroundColor: COLORS.bg.surface, overflow: 'hidden' }}>
           <motion.div animate={{ width: `${confidence * 100}%` }} transition={{ duration: 0.5 }} style={{ height: '100%', backgroundColor: color, borderRadius: 2 }} />

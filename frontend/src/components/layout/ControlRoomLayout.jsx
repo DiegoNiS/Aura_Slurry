@@ -31,7 +31,6 @@ import PanelHost from '../panels/PanelHost';
 import StatusSemaphore from '../dashboard/StatusSemaphore';
 import AuriRecommends from '../dashboard/AuriRecommends';
 import HealthGauge from '../dashboard/HealthGauge';
-import AiStatusCard from '../dashboard/AiStatusCard';
 import PumpSchematic from '../dashboard/PumpSchematic';
 import HealthChart from '../dashboard/HealthChart';
 import WaveformChart from '../signal/WaveformChart';
@@ -104,19 +103,33 @@ export default function ControlRoomLayout() {
             }}
           >
             {/* LEFT — vitals */}
-            <Box sx={{ width: { xs: '100%', lg: 300 }, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 1, minHeight: { xs: 'auto', lg: 0 } }}>
-              <Panel title="Estado del Activo" icon={<HealthAndSafetyIcon fontSize="inherit" />} sx={{ flex: '0 0 auto' }} dense>
+            <Box sx={{ 
+              width: { xs: '100%', lg: 300 }, 
+              flexShrink: 0, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: 1.5, 
+              minHeight: { xs: 'auto', lg: 0 },
+              overflowY: { xs: 'visible', lg: 'auto' },
+              '&::-webkit-scrollbar': { display: 'none' }
+            }}>
+              <Panel title="Estado del Activo" icon={<HealthAndSafetyIcon fontSize="inherit" />} sx={{ flex: '0 0 auto', height: 'auto' }} bodySx={{ p: 1.5 }} dense>
                 <StatusSemaphore />
-                <AuriRecommends />
               </Panel>
-              <Panel title="Salud de la Bomba" icon={<MonitorHeartIcon fontSize="inherit" />} accent={COLORS.status.normal} sx={{ flex: '0 0 auto' }} dense>
+              
+              <Panel title="Salud de la Bomba" icon={<MonitorHeartIcon fontSize="inherit" />} accent={COLORS.status.normal} sx={{ flex: '0 0 auto', height: 'auto' }} bodySx={{ p: 2 }} dense>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <HealthGauge />
                 </Box>
               </Panel>
-              <Panel title="Inteligencia Artificial" icon={<MonitorHeartIcon fontSize="inherit" />} accent={COLORS.accent.purple} sx={{ flex: '0 0 auto' }} dense>
-                <AiStatusCard />
-              </Panel>
+
+              {/* Spacer to push Auri to the bottom if there is room */}
+              <Box sx={{ flex: 1 }} />
+
+              {/* Auri floating at the bottom */}
+              <Box sx={{ flex: '0 0 auto', mt: 'auto' }}>
+                <AuriRecommends />
+              </Box>
             </Box>
 
             {/* CENTER — machine + trend (flexible: absorbe el alto sobrante) */}
