@@ -195,6 +195,7 @@ async def build_and_broadcast_payload(result: dict, extra: dict | None = None):
 
     payload = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "pump_id": "PUMP-01",  # 1 micrófono = 1 bomba (multi-bomba: roadmap)
         "status": result["status"],
         "health_score": result["health_score"],
         "confidence": result["confidence"],
@@ -250,6 +251,26 @@ async def health_check():
 async def list_reports():
     """Historial de reportes de incidente generados hacia la minera."""
     return {"reports": app_state["reports"]}
+
+
+@app.get("/api/pumps")
+async def list_pumps():
+    """Flota de bombas monitoreadas. Arquitectura: 1 micrófono = 1 bomba.
+
+    Hoy hay una sola instalada; al agregar micrófonos, cada uno se registra
+    aquí con su propio pump_id y el pipeline se instancia por bomba.
+    """
+    return {
+        "pumps": [
+            {
+                "id": "PUMP-01",
+                "name": "Bomba de Pulpa #1",
+                "model": "Warman AH 8/6",
+                "location": "Planta Concentradora — Línea de Molienda A",
+                "online": True,
+            }
+        ]
+    }
 
 @app.post("/api/calibrate")
 async def calibrate(file: UploadFile = File(...)):
