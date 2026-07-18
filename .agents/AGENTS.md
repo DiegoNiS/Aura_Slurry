@@ -21,7 +21,7 @@ The project is divided into three main modules, corresponding to the 3 team memb
 
 1. **Respect Interface Contracts:** There is a strict contract defined between modules. **DO NOT modify the contracts (variable names, JSON structure, endpoints) without explicitly consulting the user**.
    - *Python Contract (Model -> Backend):* `classify_window` returns `{ "status": str, "health_score": int, "confidence": float, "alert": str | None }`
-   - *Output Network Contract (Backend -> Frontend):* The WebSocket `/ws/status` sends `{ "timestamp": str, "status": str, "health_score": int, "confidence": float, "alert": str | None, "calibrated": bool }`
+   - *Output Network Contract (Backend -> Frontend):* The WebSocket `/ws/status` sends `{ "timestamp": str, "status": str, "health_score": int, "confidence": float, "alert": str | None, "calibrated": bool, "recommendation": str | None }`
    - *Input Network Contract (Frontend -> Backend):* The WebSocket `/ws/audio` receives binary PCM Int16 chunks, mono, 16 kHz.
 
 2. **Parallel Work (Decoupling):**

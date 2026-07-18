@@ -4,9 +4,15 @@ from datetime import datetime, timezone
 import asyncio
 import io
 import random
+import time
+from dotenv import load_dotenv
 
 from ws_manager import manager
 from mock_model import calibrate_noise, classify_window
+from ai_recommender import get_pump_recommendation_async
+
+# Load env variables (for Gemini API Key)
+load_dotenv()
 
 app = FastAPI(title="Aura-Slurry Backend")
 
@@ -22,7 +28,10 @@ app.add_middleware(
 app_state = {
     "noise_profile": None,
     "calibrated": False,
-    "processing_audio": False  # Concurrency lock
+    "processing_audio": False,  # Concurrency lock
+    "current_recommendation": None,
+    "last_status": None,
+    "last_recommendation_time": 0.0
 }
 
 # Audio constants
@@ -30,6 +39,49 @@ SAMPLE_RATE = 16000
 BYTES_PER_SAMPLE = 2  # Int16
 WINDOW_SECONDS = 1
 WINDOW_SIZE_BYTES = SAMPLE_RATE * BYTES_PER_SAMPLE * WINDOW_SECONDS
+RECOMMENDATION_COOLDOWN_SECONDS = 30 * 60  # 30 minutes
+
+async def trigger_recommendation_if_needed(status: str, health_score: int, alert: str):
+    """
+    Checks if a new recommendation should be generated.
+    Triggers generation asynchronously if status changed or cooldown passed.
+    """
+    current_time = time.time()
+    time_since_last = current_time - app_state["last_recommendation_time"]
+    
+    if status != app_state["last_status"] or time_since_last >= RECOMMENDATION_COOLDOWN_SECONDS:
+        # Update trackers immediately to prevent spamming
+        app_state["last_status"] = status
+        app_state["last_recommendation_time"] = current_time
+        
+        # Fire and forget the LLM call
+        async def fetch_and_update():
+            recommendation = await get_pump_recommendation_async(status, health_score, alert)
+            app_state["current_recommendation"] = recommendation
+            
+        asyncio.create_task(fetch_and_update())
+
+async def build_and_broadcast_payload(result: dict):
+    """
+    Builds the final contract payload and sends it.
+    Also manages the recommendation trigger.
+    """
+    await trigger_recommendation_if_needed(
+        result["status"], 
+        result["health_score"], 
+        result["alert"]
+    )
+    
+    payload = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "status": result["status"],
+        "health_score": result["health_score"],
+        "confidence": result["confidence"],
+        "alert": result["alert"],
+        "calibrated": app_state["calibrated"],
+        "recommendation": app_state["current_recommendation"]
+    }
+    await manager.broadcast_json(payload)
 
 @app.on_event("startup")
 async def startup_event():
@@ -45,15 +97,13 @@ async def mock_data_generator():
         if not app_state["processing_audio"]:
             p = random.uniform(0.7, 1.0)
             status = "NORMAL" if p >= 0.75 else "WARNING"
-            payload = {
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+            result = {
                 "status": status,
                 "health_score": int(p * 100),
                 "confidence": p,
-                "alert": None,
-                "calibrated": app_state["calibrated"]
+                "alert": None
             }
-            await manager.broadcast_json(payload)
+            await build_and_broadcast_payload(result)
         await asyncio.sleep(WINDOW_SECONDS)
 
 @app.get("/api/health")
@@ -76,7 +126,8 @@ async def calibrate(file: UploadFile = File(...)):
         "health_score": 100,
         "confidence": 1.0,
         "alert": None,
-        "calibrated": True
+        "calibrated": True,
+        "recommendation": "Calibrating background noise profile..."
     })
     
     return {"calibrated": True, "seconds": len(audio_bytes) / (SAMPLE_RATE * BYTES_PER_SAMPLE)}
@@ -122,18 +173,8 @@ async def websocket_audio(websocket: WebSocket):
                 # Classify the window
                 result = classify_window(window, app_state["noise_profile"])
                 
-                # Build the final payload based on the contract
-                payload = {
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "status": result["status"],
-                    "health_score": result["health_score"],
-                    "confidence": result["confidence"],
-                    "alert": result["alert"],
-                    "calibrated": app_state["calibrated"]
-                }
-                
-                # Broadcast the state to all connected clients on /ws/status
-                await manager.broadcast_json(payload)
+                # Build and broadcast payload
+                await build_and_broadcast_payload(result)
                 
     except WebSocketDisconnect:
         print("Audio client disconnected")
@@ -160,15 +201,8 @@ async def upload_fallback_audio(file: UploadFile = File(...)):
                 offset += WINDOW_SIZE_BYTES
                 
                 result = classify_window(window, app_state["noise_profile"])
-                payload = {
-                    "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "status": result["status"],
-                    "health_score": result["health_score"],
-                    "confidence": result["confidence"],
-                    "alert": result["alert"],
-                    "calibrated": app_state["calibrated"]
-                }
-                await manager.broadcast_json(payload)
+                await build_and_broadcast_payload(result)
+                
                 # Simulate real time passing (1 second)
                 await asyncio.sleep(WINDOW_SECONDS)
         finally:
