@@ -93,6 +93,7 @@ async def build_and_broadcast_payload(result: dict):
         "calibrated": app_state["calibrated"],
         "recommendation": app_state["current_recommendation"]
     }
+    app_state["last_result"] = result
     await manager.broadcast_json(payload)
 
 @app.on_event("startup")
@@ -141,7 +142,26 @@ async def calibrate(file: UploadFile = File(...)):
         "calibrated": True,
         "recommendation": "Calibrating background noise profile..."
     })
-    
+
+    # Mensaje de cierre: sin esto, si no fluye audio después, el dashboard
+    # se queda mostrando CALIBRATING para siempre (es el último mensaje).
+    # Se emite el último estado real conocido (o NORMAL si aún no hubo audio).
+    last = app_state.get("last_result") or {
+        "status": "NORMAL",
+        "health_score": 100,
+        "confidence": 1.0,
+        "alert": None,
+    }
+    await manager.broadcast_json({
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "status": last["status"],
+        "health_score": last["health_score"],
+        "confidence": last["confidence"],
+        "alert": last["alert"],
+        "calibrated": True,
+        "recommendation": "Perfil de ruido calibrado. Listo para monitorear.",
+    })
+
     return {"calibrated": True, "seconds": len(audio_bytes) / (SAMPLE_RATE * BYTES_PER_SAMPLE)}
 
 @app.delete("/api/calibrate")
