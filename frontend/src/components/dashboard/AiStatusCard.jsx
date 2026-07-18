@@ -12,6 +12,7 @@ import useSignalStore from '../../stores/useSignalStore';
 import useUiStore from '../../stores/useUiStore';
 import { COLORS, STATUS_COLOR_MAP, STATUS, PANEL_IDS } from '../../utils/constants';
 import AnimatedNumber from '../common/AnimatedNumber';
+import auraFace from '../../assets/aura-face.png';
 
 function Row({ label, children }) {
   return (
@@ -90,24 +91,41 @@ export default function AiStatusCard() {
         </Box>
       </Row>
 
-      {/* Recomendación del asistente IA (Gemini, generada por el backend) */}
-      {recommendation && (
+      {/* AURI — asistente IA (Gemini, generado por el backend) */}
+      <Box
+        sx={{
+          mt: 0.75,
+          p: 1,
+          borderRadius: 1.5,
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 1,
+          backgroundColor: `${COLORS.accent.purple}10`,
+          border: `1px solid ${COLORS.accent.purple}30`,
+        }}
+      >
         <Box
+          component="img"
+          src={auraFace}
+          alt="AURI"
           sx={{
-            mt: 0.75,
-            p: 1,
-            borderRadius: 1.5,
-            backgroundColor: `${COLORS.accent.purple}10`,
-            border: `1px solid ${COLORS.accent.purple}30`,
+            width: 34,
+            height: 34,
+            borderRadius: '50%',
+            objectFit: 'cover',
+            flexShrink: 0,
+            border: `1px solid ${COLORS.accent.cyan}50`,
+            backgroundColor: COLORS.bg.surface,
           }}
-        >
+        />
+        <Box sx={{ minWidth: 0 }}>
           <Typography sx={{ fontSize: '0.56rem', fontWeight: 700, letterSpacing: '0.08em', color: COLORS.accent.purple, textTransform: 'uppercase', mb: 0.25 }}>
-            Recomendación IA
+            AURI recomienda
           </Typography>
           <Typography
             sx={{
               fontSize: '0.68rem',
-              color: COLORS.text.primary,
+              color: recommendation ? COLORS.text.primary : COLORS.text.muted,
               lineHeight: 1.35,
               display: '-webkit-box',
               WebkitLineClamp: 3,
@@ -115,10 +133,10 @@ export default function AiStatusCard() {
               overflow: 'hidden',
             }}
           >
-            {recommendation}
+            {recommendation || 'Escuchando la bomba… la recomendación aparece al cambiar el estado.'}
           </Typography>
         </Box>
-      )}
+      </Box>
     </Box>
   );
 }

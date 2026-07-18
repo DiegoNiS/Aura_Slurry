@@ -26,7 +26,9 @@ def generate_recommendation(status: str, health_score: int, alert: str) -> str:
         """
         
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            # alias estable: siempre apunta al modelo flash vigente
+            # (gemini-2.5-flash dejó de estar disponible para cuentas nuevas)
+            model="gemini-flash-latest",
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.3,

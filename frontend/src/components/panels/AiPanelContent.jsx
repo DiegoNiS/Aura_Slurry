@@ -9,6 +9,7 @@ import usePumpStore from '../../stores/usePumpStore';
 import { COLORS, THRESHOLDS, colorFromScore } from '../../utils/constants';
 import { PanelBody, SectionLabel, Field } from '../common/PanelBits';
 import RadialGauge from '../common/RadialGauge';
+import auraBody from '../../assets/aura-body.png';
 
 export default function AiPanelContent() {
   const modelName = usePumpStore((s) => s.modelName);
@@ -26,10 +27,18 @@ export default function AiPanelContent() {
       </Box>
 
       <Box>
-        <SectionLabel>Recomendación del asistente (Gemini)</SectionLabel>
-        <Typography sx={{ fontSize: '0.76rem', color: recommendation ? COLORS.text.primary : COLORS.text.muted, lineHeight: 1.45, py: 0.5 }}>
-          {recommendation || 'Aún no hay recomendación — se genera al cambiar el estado de la bomba.'}
-        </Typography>
+        <SectionLabel>AURI — asistente de confiabilidad (Gemini)</SectionLabel>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.25, py: 0.5 }}>
+          <Box
+            component="img"
+            src={auraBody}
+            alt="AURI"
+            sx={{ width: 52, flexShrink: 0, borderRadius: 1.5, border: `1px solid ${COLORS.border.default}`, backgroundColor: COLORS.bg.surface }}
+          />
+          <Typography sx={{ fontSize: '0.76rem', color: recommendation ? COLORS.text.primary : COLORS.text.muted, lineHeight: 1.45 }}>
+            {recommendation || 'Aún no hay recomendación — se genera al cambiar el estado de la bomba.'}
+          </Typography>
+        </Box>
       </Box>
 
       <Box>
