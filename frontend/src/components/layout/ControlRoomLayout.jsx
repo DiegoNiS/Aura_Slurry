@@ -51,22 +51,8 @@ function DiagnosticRadials() {
 }
 
 export default function ControlRoomLayout() {
-  const startMockSimulation = usePumpStore((s) => s.startMockSimulation);
-  const stopMockSimulation = usePumpStore((s) => s.stopMockSimulation);
-
   // Live telemetry
   useAuraWebSocket();
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!usePumpStore.getState().wsConnected) startMockSimulation();
-    }, 2000);
-    return () => {
-      clearTimeout(timer);
-      stopMockSimulation();
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <Box

@@ -78,9 +78,17 @@ def classify_window(audio_bytes_or_array, noise_profile=None) -> dict:
             "confidence": 0.0,
             "alert": "Model not loaded (modelo.joblib missing — run entrenar.py)",
         }
+    status_en = _STATUS_EN[r["estado"]]
+    alert_msg = None
+    
+    if status_en == "FAILURE":
+        alert_msg = "🚨 CRÍTICO: Posible cavitación o desgaste severo detectado. Se sugiere inspección física inmediata."
+    elif status_en == "WARNING":
+        alert_msg = "⚠️ ADVERTENCIA: Firma acústica fuera de lo normal. Fluctuaciones menores detectadas."
+
     return {
-        "status": _STATUS_EN[r["estado"]],
+        "status": status_en,
         "health_score": r["health_score"],
         "confidence": r["confianza"],
-        "alert": "Possible cavitation/wear detected" if r["alerta"] else None,
+        "alert": alert_msg,
     }
