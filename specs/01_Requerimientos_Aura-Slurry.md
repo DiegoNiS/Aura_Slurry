@@ -86,6 +86,11 @@ Cada RF está etiquetado con el módulo responsable: **[M]** Modelo/Señal, **[B
 - **RF-16 [F]:** El dashboard debe mostrar un **panel de alertas** con el evento de falla y su timestamp.
 - **RF-17 [F]:** El dashboard debe reflejar visualmente el estado "calibrando" mientras se captura el perfil de ruido.
 
+### Recomendaciones con IA Generativa
+- **RF-18 [B]:** El backend debe utilizar un LLM (ej. Gemini 2.5 Flash) vía API para generar recomendaciones operativas cortas en lenguaje natural basadas en el estado de salud de la bomba.
+- **RF-19 [B]:** La IA debe dispararse asíncronamente (sin bloquear el audio) ante un cambio de estado, o de forma preventiva cada 30 minutos.
+- **RF-20 [F]:** El dashboard debe mostrar permanentemente la recomendación de la IA en pantalla.
+
 ---
 
 ## 5. Requisitos no funcionales (RNF)
