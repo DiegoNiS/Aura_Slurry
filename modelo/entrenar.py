@@ -26,7 +26,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 from sklearn.model_selection import train_test_split
 
-from senal import SR, VENTANA_S, extraer_features
+from senal import SR, VENTANA_S, _sustraer_ruido, calibrar_ruido, extraer_features
 
 MUESTRAS_VENTANA = int(SR * VENTANA_S)
 
@@ -57,6 +57,26 @@ def features_de_archivos(archivos: list[Path], etiqueta: int):
             y.append(etiqueta)
         if (i + 1) % 100 == 0:
             print(f"    {i + 1}/{len(archivos)} archivos procesados…")
+    return X, y
+
+
+def aumentar_con_ruido(archivos: list[Path], etiqueta: int, ruido: np.ndarray, rng):
+    """Aumento de datos: ventana + ruido a ganancia aleatoria → sustracción → features.
+
+    Así el modelo aprende a clasificar el audio YA procesado por la calibración
+    (con sus artefactos), que es lo que verá en vivo cuando el operador calibre.
+    """
+    perfil = calibrar_ruido(ruido[: SR * 3])
+    X, y = [], []
+    for i, ruta in enumerate(archivos):
+        for ventana in ventanear(cargar_wav_canal1(ruta)):
+            g = rng.uniform(0.3, 1.2)
+            ini = rng.integers(0, len(ruido) - len(ventana))
+            mezcla = ventana + g * ruido[ini : ini + len(ventana)]
+            X.append(extraer_features(_sustraer_ruido(mezcla, perfil)))
+            y.append(etiqueta)
+        if (i + 1) % 100 == 0:
+            print(f"    {i + 1}/{len(archivos)} archivos aumentados…")
     return X, y
 
 
@@ -95,6 +115,12 @@ def main() -> None:
     parser.add_argument("--data", required=True, help="Ruta a la carpeta pump/ de MIMII")
     parser.add_argument("--ids", nargs="+", default=["id_00"], help="IDs de bomba a usar")
     parser.add_argument("--out", default=None, help="Ruta de salida del modelo.joblib")
+    parser.add_argument(
+        "--ruido",
+        default=None,
+        help="WAV de ruido para aumento de datos (entrena también con "
+        "ventanas ruido+calibración; recomendado para la demo en vivo)",
+    )
     args = parser.parse_args()
 
     raiz = Path(args.data)
@@ -135,6 +161,19 @@ def main() -> None:
         X, y = features_de_archivos(subset, etiqueta)
         X_test += X
         y_test += y
+
+    if args.ruido:
+        print("Aumento de datos con ruido + calibración…")
+        ruido, sr_r = sf.read(args.ruido, dtype="float32", always_2d=True)
+        ruido = ruido[:, 0]
+        if sr_r != SR:
+            ruido = librosa.resample(ruido, orig_sr=sr_r, target_sr=SR)
+        rng = np.random.default_rng(42)
+        for etiqueta in (0, 1):
+            subset = [a for a, e in zip(arch_train, y_arch_train) if e == etiqueta]
+            X, y = aumentar_con_ruido(subset, etiqueta, ruido, rng)
+            X_train += X
+            y_train += y
 
     X_train, y_train = np.array(X_train), np.array(y_train)
     X_test, y_test = np.array(X_test), np.array(y_test)

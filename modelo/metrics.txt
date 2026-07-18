@@ -1,0 +1,17 @@
+Aura-Slurry — evaluación del modelo (ids=['id_00'], ventana=2.0s)
+Ventanas: 9190 train / 1150 test (split por archivo)
+
+Accuracy: 0.9887
+
+Matriz de confusión (filas=real, columnas=predicho) [normal, abnormal]:
+[[1005    0]
+ [  13  132]]
+
+              precision    recall  f1-score   support
+
+      normal       0.99      1.00      0.99      1005
+    abnormal       1.00      0.91      0.95       145
+
+    accuracy                           0.99      1150
+   macro avg       0.99      0.96      0.97      1150
+weighted avg       0.99      0.99      0.99      1150
