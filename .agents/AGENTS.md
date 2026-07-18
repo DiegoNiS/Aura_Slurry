@@ -2,7 +2,7 @@
 
 **Aura-Slurry** es un sistema de mantenimiento predictivo acústico de bajo costo para bombas de pulpa en minería, desarrollado para la Hackatón IA — FLIT 2026. 
 
-**Objetivo principal:** Convertir un micrófono de bajo costo en un sensor de salud mecánica. Captura el sonido del equipo, aísla su firma acústica del ruido de la planta mediante sustracción espectral y clasifica su estado en tiempo real.
+**Objetivo principal:** Convertir un micrófono de bajo costo en un sensor de salud mecánica. Captura el sonido del equipo en vivo, aísla su firma acústica del ruido de la planta mediante sustracción espectral y clasifica su estado en tiempo real.
 
 ## Arquitectura y Stack Tecnológico
 El proyecto está dividido en tres módulos principales, correspondientes a los 3 integrantes del equipo:
@@ -12,16 +12,17 @@ El proyecto está dividido en tres módulos principales, correspondientes a los 
    - **Responsabilidad:** Funciones puras para procesar audio, extraer features (MFCC) y predecir.
 2. **Backend (Python):**
    - **Stack:** `FastAPI`, `uvicorn`, `websockets`, `python-multipart`.
-   - **Responsabilidad:** Orquestar el modelo y exponer endpoints REST y un WebSocket para emitir el estado en tiempo real.
+   - **Responsabilidad:** Orquestar el modelo y exponer endpoints REST y WebSockets (uno para ingesta de audio en vivo y otro para emitir el estado en tiempo real).
 3. **Frontend (Web):**
    - **Stack:** `React` (Vite), `Material UI` (Tema oscuro SCADA), `Recharts`.
-   - **Responsabilidad:** Dashboard en tiempo real que consume el WebSocket (semáforo, gauge, gráfico).
+   - **Responsabilidad:** Dashboard en tiempo real que consume el estado, y captura el audio del micrófono enviándolo por WebSocket al backend.
 
 ## Reglas Críticas para Agentes
 
 1. **Respetar los Contratos de Interfaz:** Existe un contrato estricto definido entre los módulos. **NO modifiques los contratos (nombres de variables, estructura de JSONs, endpoints) sin consultar explícitamente al usuario**.
    - *Contrato Python (Modelo -> Backend):* `clasificar_ventana` retorna `{ "estado": str, "health_score": int, "confianza": float, "alerta": str | None }`
-   - *Contrato Red (Backend -> Frontend):* El WebSocket envía `{ "timestamp": str, "estado": str, "health_score": int, "confianza": float, "alerta": str | None, "calibrado": bool }`
+   - *Contrato Red de Salida (Backend -> Frontend):* El WebSocket `/ws/estado` envía `{ "timestamp": str, "estado": str, "health_score": int, "confianza": float, "alerta": str | None, "calibrado": bool }`
+   - *Contrato Red de Entrada (Frontend -> Backend):* El WebSocket `/ws/audio` recibe chunks binarios PCM Int16, mono, 16 kHz.
 
 2. **Trabajo en Paralelo (Desacoplamiento):**
    - Si trabajas en el Backend y el Modelo no está listo, utiliza un **mock** (`clasificar_ventana` que devuelva datos falsos con la misma estructura).
@@ -30,7 +31,8 @@ El proyecto está dividido en tres módulos principales, correspondientes a los 
 3. **Restricciones del MVP:**
    - Todo debe correr en CPU estándar. No usar dependencias que requieran GPU obligatoria.
    - El modelo entrenará usando el dataset MIMII (japonés, subconjunto `pump`).
-   - Siempre debe existir soporte para uso de archivos WAV pregrabados como blindaje para la demo en vivo.
+   - El **modo primario** es el streaming de audio en vivo vía micrófono. 
+   - Siempre debe existir soporte para uso de archivos WAV pregrabados como **modo de respaldo**, que debe funcionar siempre.
 
 4. **Estructura del Proyecto:**
    - `modelo/` -> Scripts de entrenamiento y `senal.py` (inferencia pura).
