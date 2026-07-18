@@ -34,6 +34,14 @@ Por ese mismo cable viaja la comunicación celular ↔ laptop, sin necesidad de 
 
 **Una sola terminal** (el backend sirve también el dashboard):
 
+Si usas **CMD** (símbolo del sistema):
+```cmd
+cd D:\HackatonFLIT\backend
+set MOCK_WHEN_IDLE=0
+python -m uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+Si usas **PowerShell**:
 ```powershell
 cd D:\HackatonFLIT\backend
 $env:MOCK_WHEN_IDLE = "0"
