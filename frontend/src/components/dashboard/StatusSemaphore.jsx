@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import usePumpStore from '../../stores/usePumpStore';
 import { STATUS, STATUS_COLOR_MAP, COLORS } from '../../utils/constants';
 
-const LIGHT = 34;
+const LIGHT = 26;
 const lights = [
   { status: STATUS.NORMAL, color: COLORS.status.normal },
   { status: STATUS.WARNING, color: COLORS.status.warning },
@@ -66,8 +66,8 @@ export default function StatusSemaphore() {
           position: 'relative',
           display: 'flex',
           flexDirection: 'column',
-          gap: 1.25,
-          p: 1.5,
+          gap: 0.9,
+          p: 1,
           borderRadius: 3,
           backgroundColor: 'rgba(0,0,0,0.4)',
           border: `1px solid ${COLORS.border.default}`,
@@ -104,7 +104,7 @@ export default function StatusSemaphore() {
           Estado del activo
         </Typography>
         <motion.div key={current} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-          <Typography sx={{ fontFamily: '"Rajdhani", monospace', fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.1, color: info?.main, letterSpacing: '0.02em' }}>
+          <Typography sx={{ fontFamily: '"Rajdhani", monospace', fontWeight: 700, fontSize: '1.3rem', lineHeight: 1.1, color: info?.main, letterSpacing: '0.02em' }}>
             {info?.label?.toUpperCase()}
           </Typography>
         </motion.div>

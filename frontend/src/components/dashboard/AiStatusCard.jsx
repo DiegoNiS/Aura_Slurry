@@ -15,7 +15,7 @@ import AnimatedNumber from '../common/AnimatedNumber';
 
 function Row({ label, children }) {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.5 }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 0.3 }}>
       <Typography sx={{ fontSize: '0.64rem', color: COLORS.text.muted, letterSpacing: '0.04em' }}>{label}</Typography>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>{children}</Box>
     </Box>

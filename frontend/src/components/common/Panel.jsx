@@ -39,8 +39,8 @@ export default function Panel({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            px: 1.75,
-            py: 1.1,
+            px: 1.5,
+            py: 0.7,
             borderBottom: `1px solid ${COLORS.border.subtle}`,
             flexShrink: 0,
           }}
@@ -71,7 +71,7 @@ export default function Panel({
         sx={{
           flex: 1,
           minHeight: 0,
-          p: dense ? 1.25 : 1.75,
+          p: dense ? 1 : 1.25,
           overflowY: scroll ? 'auto' : 'hidden',
           overflowX: 'hidden',
           ...bodySx,

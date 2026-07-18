@@ -10,7 +10,7 @@ import usePumpStore from '../../stores/usePumpStore';
 import { COLORS, colorFromScore } from '../../utils/constants';
 import AnimatedNumber from '../common/AnimatedNumber';
 
-export default function HealthGauge({ size = 168 }) {
+export default function HealthGauge({ size = 138 }) {
   const healthScore = usePumpStore((s) => s.healthScore);
   const confidence = usePumpStore((s) => s.confidence);
   const color = colorFromScore(healthScore);
@@ -39,7 +39,7 @@ export default function HealthGauge({ size = 168 }) {
         />
         <Box sx={{ position: 'absolute', top: '52%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
           <motion.div key={Math.round(healthScore / 5)} initial={{ scale: 1.08, opacity: 0.7 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.3 }}>
-            <Typography sx={{ fontFamily: '"Rajdhani", monospace', fontWeight: 700, fontSize: '2.6rem', lineHeight: 1, color, textShadow: `0 0 18px ${color}44`, fontVariantNumeric: 'tabular-nums' }}>
+            <Typography sx={{ fontFamily: '"Rajdhani", monospace', fontWeight: 700, fontSize: '2.1rem', lineHeight: 1, color, textShadow: `0 0 18px ${color}44`, fontVariantNumeric: 'tabular-nums' }}>
               <AnimatedNumber value={healthScore} />
             </Typography>
           </motion.div>

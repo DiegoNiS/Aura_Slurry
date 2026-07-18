@@ -14,7 +14,7 @@ export default function AuriRecommends() {
   const texto = recommendation || 'Escuchando la bomba… te aviso si algo requiere acción.';
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1, mt: 1.25 }}>
+    <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1, mt: 1 }}>
       {/* AURI flotando suavemente */}
       <Box
         component={motion.img}
