@@ -1,8 +1,10 @@
 /**
  * useCalibration — Noise calibration hook
  *
- * Records N seconds of ambient noise from the microphone,
- * sends it to POST /api/calibrar, and manages progress state.
+ * Records N seconds of ambient noise from the microphone as raw PCM Int16
+ * @ 16 kHz (same capture pipeline as useMicCapture — the backend does NOT
+ * decode compressed formats like WebM/Opus), sends it to POST /api/calibrate,
+ * and manages progress state.
  *
  * Satisfies: RF-02 (perfil de ruido), RF-04 (botón calibrar)
  */
@@ -17,8 +19,25 @@ export default function useCalibration() {
   const [error, setError] = useState(null);
 
   const setStoreCalibrating = usePumpStore((s) => s.setIsCalibrating);
-  const mediaRecorderRef = useRef(null);
-  const chunksRef = useRef([]);
+  const audioContextRef = useRef(null);
+  const processorRef = useRef(null);
+  const streamRef = useRef(null);
+  const stoppedRef = useRef(false);
+
+  const cleanupAudio = () => {
+    if (processorRef.current) {
+      processorRef.current.disconnect();
+      processorRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+  };
 
   const startCalibration = useCallback(async (durationSeconds = AUDIO_CONFIG.calibrationDuration) => {
     try {
@@ -26,7 +45,7 @@ export default function useCalibration() {
       setIsCalibrating(true);
       setStoreCalibrating(true);
       setProgress(0);
-      chunksRef.current = [];
+      stoppedRef.current = false;
 
       // Get microphone access
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -38,25 +57,38 @@ export default function useCalibration() {
           autoGainControl: false,
         },
       });
+      streamRef.current = stream;
 
-      // Record audio
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus',
-      });
-      mediaRecorderRef.current = mediaRecorder;
+      // Capture raw PCM at 16 kHz (browser resamples)
+      const audioContext = new AudioContext({ sampleRate: AUDIO_CONFIG.sampleRate });
+      audioContextRef.current = audioContext;
+      const source = audioContext.createMediaStreamSource(stream);
+      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      processorRef.current = processor;
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
+      const chunks = [];
+      processor.onaudioprocess = (event) => {
+        chunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
       };
+      source.connect(processor);
+      processor.connect(audioContext.destination);
 
-      mediaRecorder.onstop = async () => {
-        // Stop all tracks
-        stream.getTracks().forEach((track) => track.stop());
+      const finish = async () => {
+        if (stoppedRef.current) return;
+        stoppedRef.current = true;
+        cleanupAudio();
 
-        // Build blob from recorded chunks
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        // Float32 chunks → single Int16 PCM buffer (what the backend expects)
+        const totalLength = chunks.reduce((acc, c) => acc + c.length, 0);
+        const pcm = new Int16Array(totalLength);
+        let offset = 0;
+        for (const chunk of chunks) {
+          for (let i = 0; i < chunk.length; i++) {
+            const s = Math.max(-1, Math.min(1, chunk[i]));
+            pcm[offset++] = s < 0 ? s * 0x8000 : s * 0x7fff;
+          }
+        }
+        const audioBlob = new Blob([pcm.buffer], { type: 'application/octet-stream' });
 
         try {
           await calibrateNoise(audioBlob);
@@ -71,9 +103,6 @@ export default function useCalibration() {
         setProgress(100);
       };
 
-      // Start recording
-      mediaRecorder.start(250); // Collect data every 250ms
-
       // Progress timer
       const totalMs = durationSeconds * 1000;
       const startTime = Date.now();
@@ -83,9 +112,9 @@ export default function useCalibration() {
         const pct = Math.min((elapsed / totalMs) * 100, 100);
         setProgress(pct);
 
-        if (elapsed >= totalMs) {
+        if (elapsed >= totalMs || stoppedRef.current) {
           clearInterval(progressInterval);
-          mediaRecorder.stop();
+          finish();
         }
       }, 50);
 
@@ -97,9 +126,8 @@ export default function useCalibration() {
   }, [setStoreCalibrating]);
 
   const cancelCalibration = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
+    stoppedRef.current = true;
+    cleanupAudio();
     setIsCalibrating(false);
     setStoreCalibrating(false);
     setProgress(0);
