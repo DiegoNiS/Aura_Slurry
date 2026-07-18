@@ -29,7 +29,10 @@ app = FastAPI(title="Aura-Slurry Backend")
 # En producción: lista explícita de orígenes vía variable de entorno.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    # Origen configurable para el deploy (Render) — default "*" para la demo
+    # local. credentials=False: wildcard+credentials es inválido (auditoría)
+    # y no usamos cookies.
+    allow_origins=[os.getenv("FRONTEND_URL", "*")],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -109,7 +109,8 @@ def clasificar_ventana(audio_array, perfil_ruido=None) -> dict:
   "health_score": 22,
   "confianza": 0.91,
   "alerta": "Posible cavitación/desgaste",
-  "calibrado": true
+  "calibrado": true,
+  "recommendation": "Detener el motor inmediatamente y purgar la bomba para evitar cavitación severa."
 }
 ```
 
