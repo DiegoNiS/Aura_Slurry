@@ -1,42 +1,38 @@
 import random
-import time
 
-def calibrar_ruido(audio_bytes_o_array):
+def calibrate_noise(audio_bytes_or_array):
     """
-    Simula la calibración de ruido de fondo.
-    En la implementación real de `senal.py` esto devolverá un perfil espectral real.
-    Por ahora devolvemos un diccionario mock.
+    Simulates background noise calibration.
+    In the real implementation (signal_processing.py), this will return a real spectral profile.
+    For now, we return a mock dictionary.
     """
-    print("Mock: Calibrando ruido...")
-    # Simular tiempo de procesamiento si es necesario
-    return {"tipo": "ruido_mina", "magnitud_promedio": random.uniform(0.1, 0.5)}
+    print("Mock: Calibrating noise...")
+    # Simulate processing time if necessary
+    return {"type": "mine_noise", "average_magnitude": random.uniform(0.1, 0.5)}
 
-def clasificar_ventana(audio_array, perfil_ruido=None):
+def classify_window(audio_array, noise_profile=None):
     """
-    Simula la inferencia sobre una ventana de audio.
-    Retorna un diccionario según el contrato definido en AGENTS.md.
+    Simulates inference on an audio window.
+    Returns a dictionary according to the contract defined in AGENTS.md.
     """
-    # Generar una probabilidad aleatoria pero ligeramente sesgada para probar
+    # Generate a random but slightly biased probability for testing
     p = random.uniform(0.2, 1.0)
     
     if p >= 0.75:
-        estado = "NORMAL"
-        alerta = None
+        status = "NORMAL"
+        alert = None
     elif 0.45 <= p < 0.75:
-        estado = "ADVERTENCIA"
-        alerta = None
+        status = "WARNING"
+        alert = None
     else:
-        estado = "FALLA"
-        alerta = "Posible cavitación/desgaste (MOCK)"
+        status = "FAILURE"
+        alert = "Possible cavitation/wear (MOCK)"
 
     health_score = int(p * 100)
 
-    # Simular un poco de latencia para parecerse a la realidad
-    # time.sleep(0.05)
-
     return {
-        "estado": estado,
+        "status": status,
         "health_score": health_score,
-        "confianza": p,
-        "alerta": alerta
+        "confidence": p,
+        "alert": alert
     }

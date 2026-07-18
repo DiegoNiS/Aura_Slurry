@@ -5,25 +5,25 @@ import asyncio
 import io
 
 from ws_manager import manager
-from mock_model import calibrar_ruido, clasificar_ventana
+from mock_model import calibrate_noise, classify_window
 
 app = FastAPI(title="Aura-Slurry Backend")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción especificar los orígenes
+    allow_origins=["*"],  # In production, specify origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Estado global (en un MVP sin base de datos)
+# Global state (for an MVP without a database)
 app_state = {
-    "perfil_ruido": None,
-    "calibrado": False
+    "noise_profile": None,
+    "calibrated": False
 }
 
-# Constantes de audio
+# Audio constants
 SAMPLE_RATE = 16000
 BYTES_PER_SAMPLE = 2  # Int16
 WINDOW_SECONDS = 1
@@ -33,39 +33,39 @@ WINDOW_SIZE_BYTES = SAMPLE_RATE * BYTES_PER_SAMPLE * WINDOW_SECONDS
 async def health_check():
     return {"status": "ok"}
 
-@app.post("/api/calibrar")
-async def calibrar(file: UploadFile = File(...)):
+@app.post("/api/calibrate")
+async def calibrate(file: UploadFile = File(...)):
     audio_bytes = await file.read()
-    # Simular la llamada a senal.py
-    perfil = calibrar_ruido(audio_bytes)
+    # Call signal_processing (mocked for now)
+    profile = calibrate_noise(audio_bytes)
     
-    app_state["perfil_ruido"] = perfil
-    app_state["calibrado"] = True
+    app_state["noise_profile"] = profile
+    app_state["calibrated"] = True
     
-    # Notificar a los clientes que el sistema ha sido calibrado
+    # Notify clients that the system has been calibrated
     await manager.broadcast_json({
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "estado": "CALIBRANDO",
+        "status": "CALIBRATING",
         "health_score": 100,
-        "confianza": 1.0,
-        "alerta": None,
-        "calibrado": True
+        "confidence": 1.0,
+        "alert": None,
+        "calibrated": True
     })
     
-    return {"calibrado": True, "segundos": len(audio_bytes) / (SAMPLE_RATE * BYTES_PER_SAMPLE)}
+    return {"calibrated": True, "seconds": len(audio_bytes) / (SAMPLE_RATE * BYTES_PER_SAMPLE)}
 
-@app.delete("/api/calibrar")
-async def limpiar_calibracion():
-    app_state["perfil_ruido"] = None
-    app_state["calibrado"] = False
-    return {"calibrado": False}
+@app.delete("/api/calibrate")
+async def clear_calibration():
+    app_state["noise_profile"] = None
+    app_state["calibrated"] = False
+    return {"calibrated": False}
 
-@app.websocket("/ws/estado")
-async def websocket_estado(websocket: WebSocket):
+@app.websocket("/ws/status")
+async def websocket_status(websocket: WebSocket):
     await manager.connect(websocket)
     try:
         while True:
-            # Mantenemos la conexión abierta, los broadcasts se hacen desde la ingesta
+            # Keep connection open, broadcasts are done from the ingestion endpoint
             await websocket.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(websocket)
@@ -80,58 +80,58 @@ async def websocket_audio(websocket: WebSocket):
             data = await websocket.receive_bytes()
             buffer.extend(data)
             
-            # Si tenemos suficiente audio para una ventana, procesamos
+            # If we have enough audio for a window, process it
             if len(buffer) >= WINDOW_SIZE_BYTES:
-                ventana = buffer[:WINDOW_SIZE_BYTES]
-                # Eliminamos la ventana procesada del buffer
+                window = buffer[:WINDOW_SIZE_BYTES]
+                # Remove the processed window from the buffer
                 buffer = buffer[WINDOW_SIZE_BYTES:]
                 
-                # Clasificamos la ventana
-                resultado = clasificar_ventana(ventana, app_state["perfil_ruido"])
+                # Classify the window
+                result = classify_window(window, app_state["noise_profile"])
                 
-                # Armamos el payload final del contrato
+                # Build the final payload based on the contract
                 payload = {
                     "timestamp": datetime.now(timezone.utc).isoformat(),
-                    "estado": resultado["estado"],
-                    "health_score": resultado["health_score"],
-                    "confianza": resultado["confianza"],
-                    "alerta": resultado["alerta"],
-                    "calibrado": app_state["calibrado"]
+                    "status": result["status"],
+                    "health_score": result["health_score"],
+                    "confidence": result["confidence"],
+                    "alert": result["alert"],
+                    "calibrated": app_state["calibrated"]
                 }
                 
-                # Emitimos el estado a todos los clientes conectados a /ws/estado
+                # Broadcast the state to all connected clients on /ws/status
                 await manager.broadcast_json(payload)
                 
     except WebSocketDisconnect:
-        print("Cliente de audio desconectado")
+        print("Audio client disconnected")
 
 @app.post("/api/audio")
-async def upload_audio_respaldo(file: UploadFile = File(...)):
+async def upload_fallback_audio(file: UploadFile = File(...)):
     """
-    Modo de respaldo: recibe un archivo WAV completo y simula su streaming.
+    Fallback mode: receives a full WAV file and simulates its streaming.
     """
     audio_bytes = await file.read()
     
-    # Procesamiento en segundo plano simple (para MVP)
+    # Simple background processing (for MVP)
     async def process_file(data: bytes):
         offset = 0
         while offset + WINDOW_SIZE_BYTES <= len(data):
-            ventana = data[offset:offset+WINDOW_SIZE_BYTES]
+            window = data[offset:offset+WINDOW_SIZE_BYTES]
             offset += WINDOW_SIZE_BYTES
             
-            resultado = clasificar_ventana(ventana, app_state["perfil_ruido"])
+            result = classify_window(window, app_state["noise_profile"])
             payload = {
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "estado": resultado["estado"],
-                "health_score": resultado["health_score"],
-                "confianza": resultado["confianza"],
-                "alerta": resultado["alerta"],
-                "calibrado": app_state["calibrado"]
+                "status": result["status"],
+                "health_score": result["health_score"],
+                "confidence": result["confidence"],
+                "alert": result["alert"],
+                "calibrated": app_state["calibrated"]
             }
             await manager.broadcast_json(payload)
-            # Simular paso del tiempo real (1 segundo)
+            # Simulate real time passing (1 second)
             await asyncio.sleep(WINDOW_SECONDS)
             
-    # Lanza la tarea en background
+    # Launch the background task
     asyncio.create_task(process_file(audio_bytes))
-    return {"message": "Streaming de archivo iniciado"}
+    return {"message": "File streaming started"}

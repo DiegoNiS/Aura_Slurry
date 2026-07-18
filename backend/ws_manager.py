@@ -20,8 +20,8 @@ class ConnectionManager:
             try:
                 await connection.send_json(message)
             except Exception:
-                # Si falla el envío (ej. cliente desconectado de forma abrupta), removemos la conexión
+                # If sending fails (e.g., client disconnected abruptly), remove the connection
                 self.disconnect(connection)
 
-# Instancia global para ser usada en main.py
+# Global instance to be used in main.py
 manager = ConnectionManager()
