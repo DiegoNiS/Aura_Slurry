@@ -60,6 +60,36 @@ def features_de_archivos(archivos: list[Path], etiqueta: int):
     return X, y
 
 
+def guardar_matriz_png(matriz, acc: float, ruta: Path) -> None:
+    """Matriz de confusión como imagen para la lámina del pitch (T1.4)."""
+    try:
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except ImportError:
+        print("(matplotlib no instalado — se omite la imagen de la matriz)")
+        return
+
+    fig, ax = plt.subplots(figsize=(5, 4.2))
+    ax.imshow(matriz, cmap="Blues")
+    clases = ["normal", "abnormal"]
+    ax.set_xticks([0, 1], clases)
+    ax.set_yticks([0, 1], clases)
+    ax.set_xlabel("Predicho")
+    ax.set_ylabel("Real")
+    ax.set_title(f"Aura-Slurry — Matriz de confusión (acc={acc:.3f})")
+    for i in range(2):
+        for j in range(2):
+            color = "white" if matriz[i, j] > matriz.max() / 2 else "black"
+            ax.text(j, i, str(matriz[i, j]), ha="center", va="center",
+                    color=color, fontsize=16)
+    fig.tight_layout()
+    fig.savefig(ruta, dpi=150)
+    plt.close(fig)
+    print(f"Imagen de la matriz guardada en {ruta}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Entrena el RF de Aura-Slurry")
     parser.add_argument("--data", required=True, help="Ruta a la carpeta pump/ de MIMII")
@@ -136,6 +166,7 @@ def main() -> None:
     )
     print("\n" + resumen)
     (salida.parent / "metrics.txt").write_text(resumen, encoding="utf-8")
+    guardar_matriz_png(matriz, acc, salida.parent / "matriz_confusion.png")
 
     # 5. Serializar (T1.5)
     joblib.dump(modelo, salida, compress=3)
