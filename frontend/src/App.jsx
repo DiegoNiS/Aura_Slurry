@@ -11,6 +11,8 @@ import { ThemeProvider, CssBaseline } from '@mui/material';
 import { SnackbarProvider } from 'notistack';
 import auraTheme from './theme/auraTheme';
 import ControlRoomLayout from './components/layout/ControlRoomLayout';
+import FleetView from './components/layout/FleetView';
+import useUiStore from './stores/useUiStore';
 
 // Self-hosted fonts (no external network calls)
 import '@fontsource/inter/300.css';
@@ -24,6 +26,9 @@ import '@fontsource/rajdhani/600.css';
 import '@fontsource/rajdhani/700.css';
 
 export default function App() {
+  // Navegación de flota: null = dashboard general; un id = detalle de bomba
+  const selectedPump = useUiStore((s) => s.selectedPump);
+
   return (
     <ThemeProvider theme={auraTheme}>
       <CssBaseline />
@@ -34,7 +39,7 @@ export default function App() {
         dense
         preventDuplicate
       >
-        <ControlRoomLayout />
+        {selectedPump ? <ControlRoomLayout /> : <FleetView />}
       </SnackbarProvider>
     </ThemeProvider>
   );

@@ -13,6 +13,12 @@ import { create } from 'zustand';
 export const MAX_OPEN_PANELS = 2;
 
 const useUiStore = create((set, get) => ({
+  // ─── Navegación de flota: 1 micrófono = 1 bomba ────────────────────
+  // null → vista general de flota; un id → vista de detalle de esa bomba
+  selectedPump: null,
+  selectPump: (id) => set({ selectedPump: id }),
+  backToFleet: () => set({ selectedPump: null, openPanels: [], focusedPanel: null }),
+
   // Ordered list of open panel ids (last = most recent, docked rightmost/top)
   openPanels: [],
   focusedPanel: null,

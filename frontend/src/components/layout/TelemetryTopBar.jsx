@@ -7,6 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Box, Typography, Chip, Divider, Button, Tooltip, LinearProgress } from '@mui/material';
 import { motion } from 'framer-motion';
 import SensorsIcon from '@mui/icons-material/Sensors';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import MicIcon from '@mui/icons-material/Mic';
 import StopCircleIcon from '@mui/icons-material/StopCircle';
 import TuneIcon from '@mui/icons-material/Tune';
@@ -31,6 +32,7 @@ export default function TelemetryTopBar() {
   const setIsLive = usePumpStore((s) => s.setIsLive);
   const setInputMode = usePumpStore((s) => s.setInputMode);
   const openPanel = useUiStore((s) => s.openPanel);
+  const backToFleet = useUiStore((s) => s.backToFleet);
   const { toggleCapture } = useMicCapture();
   const fileRef = useRef(null);
 
@@ -81,6 +83,16 @@ export default function TelemetryTopBar() {
     >
       {/* identity */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+        <Tooltip title="Volver a la flota" arrow>
+          <MotionButton
+            whileTap={{ scale: 0.94 }}
+            onClick={backToFleet}
+            size="small"
+            sx={{ height: 30, minWidth: 30, px: 0.5, color: COLORS.text.secondary, border: `1px solid ${COLORS.border.default}`, flexShrink: 0, '&:hover': { borderColor: COLORS.accent.cyan, color: COLORS.accent.cyan } }}
+          >
+            <ArrowBackIcon sx={{ fontSize: 16 }} />
+          </MotionButton>
+        </Tooltip>
         <Box sx={{ width: 30, height: 30, borderRadius: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: `${COLORS.accent.cyan}15`, border: `1px solid ${COLORS.accent.cyan}30`, flexShrink: 0 }}>
           <SensorsIcon sx={{ fontSize: 17, color: COLORS.accent.cyan }} />
         </Box>

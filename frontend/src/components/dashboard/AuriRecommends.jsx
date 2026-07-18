@@ -77,6 +77,9 @@ export default function AuriRecommends() {
             </Typography>
           </motion.div>
         </AnimatePresence>
+        <Typography sx={{ fontSize: '0.52rem', color: COLORS.text.muted, mt: 0.5, fontStyle: 'italic' }}>
+          Sugerencia de referencia — no reemplaza los procedimientos del sitio.
+        </Typography>
       </Box>
     </Box>
   );
