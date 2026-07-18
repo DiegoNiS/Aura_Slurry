@@ -68,6 +68,18 @@ export async function clearCalibration() {
 }
 
 /**
+ * Fetch incident reports generated for the mining company.
+ * @returns {Promise<{reports: Array}>}
+ */
+export async function getReports() {
+  const response = await fetch(API_ENDPOINTS.reports, { method: 'GET' });
+  if (!response.ok) {
+    throw new Error(`Reports fetch failed: ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
  * Backend health check.
  * @returns {Promise<{status: string}>}
  */

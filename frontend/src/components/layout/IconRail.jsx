@@ -15,6 +15,7 @@ import GraphicEqIcon from '@mui/icons-material/GraphicEq';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import TerminalIcon from '@mui/icons-material/Terminal';
+import DescriptionIcon from '@mui/icons-material/Description';
 import usePumpStore from '../../stores/usePumpStore';
 import useUiStore from '../../stores/useUiStore';
 import { COLORS, PANELS } from '../../utils/constants';
@@ -33,6 +34,7 @@ const ICONS = {
   FilterAlt: FilterAltIcon,
   Psychology: PsychologyIcon,
   Terminal: TerminalIcon,
+  Description: DescriptionIcon,
 };
 
 const GROUPS = ['ops', 'asset', 'config'];

@@ -27,6 +27,7 @@ export const API_ENDPOINTS = {
   health: `${API_BASE_URL}/api/health`,
   audio: `${API_BASE_URL}/api/audio`,
   calibrate: `${API_BASE_URL}/api/calibrate`,
+  reports: `${API_BASE_URL}/api/reports`,
 };
 
 // ─── Frozen Contract: State Thresholds (Doc 2 §3.4) ────────────────
@@ -180,6 +181,7 @@ export const MACHINE = {
 export const PANEL_IDS = {
   CALIBRATION: 'calibration',
   ALERTS: 'alerts',
+  REPORTS: 'reports',
   HISTORY: 'history',
   PREDICTIONS: 'predictions',
   LOGS: 'logs',
@@ -194,6 +196,7 @@ export const PANEL_IDS = {
 export const PANELS = [
   { id: PANEL_IDS.CALIBRATION, title: 'Calibración de Ruido', icon: 'Tune', group: 'ops', width: 400 },
   { id: PANEL_IDS.ALERTS, title: 'Registro de Alertas', icon: 'NotificationsActive', group: 'ops', width: 460 },
+  { id: PANEL_IDS.REPORTS, title: 'Reportes a Minera', icon: 'Description', group: 'ops', width: 520 },
   { id: PANEL_IDS.PREDICTIONS, title: 'Predicciones del Modelo', icon: 'Insights', group: 'ops', width: 460 },
   { id: PANEL_IDS.HISTORY, title: 'Análisis Histórico', icon: 'Timeline', group: 'ops', width: 560 },
   { id: PANEL_IDS.SENSORS, title: 'Detalle de Sensores', icon: 'Sensors', group: 'asset', width: 460 },

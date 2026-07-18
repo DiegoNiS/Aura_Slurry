@@ -13,10 +13,12 @@ import GraphicEqIcon from '@mui/icons-material/GraphicEq';
 import FilterAltIcon from '@mui/icons-material/FilterAlt';
 import PsychologyIcon from '@mui/icons-material/Psychology';
 import TerminalIcon from '@mui/icons-material/Terminal';
+import DescriptionIcon from '@mui/icons-material/Description';
 
 import { PANEL_IDS } from '../../utils/constants';
 import CalibrationPanelContent from './CalibrationPanelContent';
 import AlertsPanelContent from './AlertsPanelContent';
+import ReportsPanelContent from './ReportsPanelContent';
 import PredictionsPanelContent from './PredictionsPanelContent';
 import HistoryPanelContent from './HistoryPanelContent';
 import SensorsPanelContent from './SensorsPanelContent';
@@ -30,6 +32,7 @@ import LogsPanelContent from './LogsPanelContent';
 export const PANEL_REGISTRY = {
   [PANEL_IDS.CALIBRATION]: { icon: <TuneIcon fontSize="inherit" />, Component: CalibrationPanelContent },
   [PANEL_IDS.ALERTS]: { icon: <NotificationsActiveIcon fontSize="inherit" />, Component: AlertsPanelContent },
+  [PANEL_IDS.REPORTS]: { icon: <DescriptionIcon fontSize="inherit" />, Component: ReportsPanelContent },
   [PANEL_IDS.PREDICTIONS]: { icon: <InsightsIcon fontSize="inherit" />, Component: PredictionsPanelContent },
   [PANEL_IDS.HISTORY]: { icon: <TimelineIcon fontSize="inherit" />, Component: HistoryPanelContent },
   [PANEL_IDS.SENSORS]: { icon: <SensorsIcon fontSize="inherit" />, Component: SensorsPanelContent },

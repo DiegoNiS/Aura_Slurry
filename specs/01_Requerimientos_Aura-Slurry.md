@@ -90,6 +90,7 @@ Cada RF está etiquetado con el módulo responsable: **[M]** Modelo/Señal, **[B
 - **RF-18 [B]:** El backend debe utilizar un LLM (ej. Gemini 2.5 Flash) vía API para generar recomendaciones operativas cortas en lenguaje natural basadas en el estado de salud de la bomba.
 - **RF-19 [B]:** La IA debe dispararse asíncronamente (sin bloquear el audio) ante un cambio de estado, o de forma preventiva cada 30 minutos.
 - **RF-20 [F]:** El dashboard debe mostrar permanentemente la recomendación de la IA en pantalla.
+- **RF-21 [B/F]:** Cuando un equipo supere un **umbral de alertas sostenidas** (N ventanas de FALLA en una ventana de observación), el sistema debe generar con IA un **reporte de incidente dirigido a la minera** (resumen ejecutivo, datos, acción recomendada), mostrarlo en la interfaz y, si hay correo configurado, enviarlo a la minera y al equipo. *(Valor del servicio como intermediario — feedback de mentoría 2026-07-18.)*
 
 ---
 

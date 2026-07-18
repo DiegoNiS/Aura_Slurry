@@ -23,6 +23,7 @@ const usePumpStore = create((set, get) => ({
   // ─── Derived / history ────────────────────────────────────────────
   healthHistory: [],
   alerts: [],
+  reports: [], // reportes de incidente hacia la minera (más reciente primero)
 
   // ─── UI / session state ───────────────────────────────────────────
   isLive: false,
@@ -79,6 +80,10 @@ const usePumpStore = create((set, get) => ({
       ...(meta.inferenceMs != null ? { lastInferenceMs: meta.inferenceMs } : {}),
       // recomendación IA (Gemini) generada por el backend — auditoría #3
       ...(data.recommendation !== undefined ? { recommendation: data.recommendation } : {}),
+      // reporte de incidente nuevo (dedupe por id)
+      ...(data.report && !get().reports.some((r) => r.id === data.report.id)
+        ? { reports: [data.report, ...get().reports].slice(0, 20) }
+        : {}),
       // visibilidad de la fuente: en modo archivo el backend manda el
       // segundo que está procesando y la duración total
       ...(data.source === 'file' && data.file_duration
@@ -98,6 +103,7 @@ const usePumpStore = create((set, get) => ({
   setCalibrationProgress: (p) => set({ calibrationProgress: p }),
   clearAlerts: () => set({ alerts: [] }),
   setCalibrated: (v) => set({ calibrated: v }),
+  setReports: (reports) => set({ reports }),
 
   // ─── Mock generator (offline development) ─────────────────────────
   startMockSimulation: () => {

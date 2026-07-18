@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import WebSocket
 from typing import List
 
@@ -16,17 +18,27 @@ class ConnectionManager:
         await websocket.send_text(message)
 
     async def broadcast_json(self, message: dict):
-        # Iterar sobre una COPIA: mutar la lista dentro del for salta clientes
-        # cuando hay desconexiones concurrentes (auditoría 2026-07-18, #1).
-        dead = []
-        for connection in list(self.active_connections):
+        """Broadcast concurrente con timeout por cliente.
+
+        - Envíos en paralelo (gather) sobre una copia de la lista: mutar
+          durante la iteración saltaba clientes (auditoría #1).
+        - Timeout de 2 s por cliente: una conexión zombie (p.ej. celular con
+          pantalla bloqueada que mantiene el TCP abierto) bloqueaba el await
+          indefinidamente y congelaba los mensajes para TODOS los clientes.
+        """
+        async def enviar(conn):
             try:
-                await connection.send_json(message)
+                await asyncio.wait_for(conn.send_json(message), timeout=2.0)
+                return None
             except Exception:
-                dead.append(connection)
-        for connection in dead:
-            if connection in self.active_connections:
-                self.active_connections.remove(connection)
+                return conn  # muerta o atascada → se elimina
+
+        resultados = await asyncio.gather(
+            *(enviar(c) for c in list(self.active_connections))
+        )
+        for muerta in filter(None, resultados):
+            if muerta in self.active_connections:
+                self.active_connections.remove(muerta)
 
 # Global instance to be used in main.py
 manager = ConnectionManager()

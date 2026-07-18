@@ -35,6 +35,7 @@ export default function useAuraWebSocket() {
   const stopMockSimulation = usePumpStore((s) => s.stopMockSimulation);
   const { enqueueSnackbar } = useSnackbar();
   const lastMsgRef = useRef(0);
+  const lastReportRef = useRef(null);
 
   const onMessage = useCallback(
     (event) => {
@@ -52,6 +53,20 @@ export default function useAuraWebSocket() {
           lastMsgRef.current = Date.now();
 
           updateFromWs(data);
+
+          // notificar reporte de incidente nuevo hacia la minera
+          if (data.report && data.report.id !== lastReportRef.current) {
+            const esPrimero = lastReportRef.current === null;
+            lastReportRef.current = data.report.id;
+            if (!esPrimero) {
+              enqueueSnackbar(
+                data.report.emailed
+                  ? '📄 Reporte de incidente enviado a la minera'
+                  : '📄 Nuevo reporte de incidente generado',
+                { variant: 'info', autoHideDuration: 6000 }
+              );
+            }
+          }
 
           if (data.alert) {
             const color = STATUS_COLOR_MAP[data.status];

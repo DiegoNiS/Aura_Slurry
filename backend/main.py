@@ -18,6 +18,7 @@ from modelo.signal_processing import (
     wav_bytes_to_pcm16,
 )
 from ai_recommender import get_pump_recommendation_async
+from report_generator import build_incident, generate_incident_report, send_report_email
 
 # Load env variables (for Gemini API Key)
 load_dotenv()
@@ -56,8 +57,82 @@ app_state = {
     "processing_audio": False,  # Concurrency lock
     "current_recommendation": None,
     "last_status": None,
-    "last_recommendation_time": 0.0
+    "last_recommendation_time": 0.0,
+    # Reportes a la minera (feedback mentor): umbral de alertas → reporte IA
+    "failure_times": [],       # timestamps de ventanas FAILURE recientes
+    "reports": [],             # reportes generados (más reciente primero)
+    "last_report_time": 0.0,
+    "generating_report": False,
 }
+
+# Umbral de reporte: N ventanas FAILURE dentro de la ventana de observación
+REPORT_FAILURE_THRESHOLD = int(os.getenv("REPORT_FAILURE_THRESHOLD", "8"))
+REPORT_WINDOW_SECONDS = int(os.getenv("REPORT_WINDOW_SECONDS", "60"))
+REPORT_COOLDOWN_SECONDS = int(os.getenv("REPORT_COOLDOWN_SECONDS", "180"))
+
+
+async def evaluar_umbral_reporte(result: dict):
+    """Si las FALLAS sostenidas superan el umbral, genera el reporte IA
+    hacia la minera (y correo si hay SMTP) sin bloquear el loop de audio."""
+    now = time.time()
+    if result["status"] == "FAILURE":
+        app_state["failure_times"].append(now)
+    app_state["failure_times"] = [
+        t for t in app_state["failure_times"] if now - t <= REPORT_WINDOW_SECONDS
+    ]
+
+    if (
+        len(app_state["failure_times"]) >= REPORT_FAILURE_THRESHOLD
+        and now - app_state["last_report_time"] >= REPORT_COOLDOWN_SECONDS
+        and not app_state["generating_report"]
+    ):
+        app_state["last_report_time"] = now
+        app_state["generating_report"] = True
+        incident = build_incident(
+            failure_count=len(app_state["failure_times"]),
+            window_seconds=REPORT_WINDOW_SECONDS,
+            threshold=REPORT_FAILURE_THRESHOLD,
+            health_score=result["health_score"],
+            alert=result["alert"],
+        )
+
+        async def generar_y_despachar():
+            try:
+                loop = asyncio.get_running_loop()
+                report = await loop.run_in_executor(None, generate_incident_report, incident)
+                emailed = await loop.run_in_executor(None, send_report_email, report)
+                report.update({
+                    "id": f"rep-{int(time.time())}",
+                    "timestamp": incident["timestamp"],
+                    "incident": incident,
+                    "emailed": emailed,
+                })
+                app_state["reports"] = [report] + app_state["reports"][:19]
+                print(f"Reporte generado: {report['subject']} (email: {emailed})")
+
+                # Emitir de inmediato: Gemini tarda unos segundos y el audio
+                # puede haber terminado — sin este broadcast el reporte no
+                # llegaría al dashboard hasta el próximo mensaje de estado.
+                last = app_state.get("last_result") or {
+                    "status": "FAILURE",
+                    "health_score": incident["health_score"],
+                    "confidence": 1.0,
+                    "alert": incident.get("alert"),
+                }
+                await manager.broadcast_json({
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "status": last["status"],
+                    "health_score": last["health_score"],
+                    "confidence": last["confidence"],
+                    "alert": last["alert"],
+                    "calibrated": app_state["calibrated"],
+                    "recommendation": app_state["current_recommendation"],
+                    "report": report,
+                })
+            finally:
+                app_state["generating_report"] = False
+
+        asyncio.create_task(generar_y_despachar())
 
 # MOCK_WHEN_IDLE=0 desactiva el generador mock (para demo/pruebas reales,
 # donde no debe haber datos inventados cuando no fluye audio)
@@ -116,6 +191,8 @@ async def build_and_broadcast_payload(result: dict, extra: dict | None = None):
         result["alert"]
     )
 
+    await evaluar_umbral_reporte(result)
+
     payload = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "status": result["status"],
@@ -124,6 +201,8 @@ async def build_and_broadcast_payload(result: dict, extra: dict | None = None):
         "alert": result["alert"],
         "calibrated": app_state["calibrated"],
         "recommendation": app_state["current_recommendation"],
+        # último reporte a la minera (el frontend detecta ids nuevos)
+        "report": app_state["reports"][0] if app_state["reports"] else None,
         **(extra or {}),
     }
     app_state["last_result"] = result
@@ -165,6 +244,12 @@ async def mock_data_generator():
 @app.get("/api/health")
 async def health_check():
     return {"status": "ok"}
+
+
+@app.get("/api/reports")
+async def list_reports():
+    """Historial de reportes de incidente generados hacia la minera."""
+    return {"reports": app_state["reports"]}
 
 @app.post("/api/calibrate")
 async def calibrate(file: UploadFile = File(...)):
@@ -305,6 +390,10 @@ async def upload_fallback_audio(file: UploadFile = File(...)):
 
                 # Simulate real time passing (1 second)
                 await asyncio.sleep(WINDOW_SECONDS)
+        except Exception:
+            # sin esto, un error en el task de fondo muere en silencio
+            import traceback
+            traceback.print_exc()
         finally:
             app_state["processing_audio"] = False
             
