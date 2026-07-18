@@ -63,6 +63,67 @@ def calibrate_noise(audio_bytes_or_array):
     return senal.calibrar_ruido(_decode(audio_bytes_or_array))
 
 
+def signal_features(audio_bytes_or_array) -> dict:
+    """Features REALES de la señal para las visualizaciones del dashboard.
+
+    Devuelve el frame que consume useSignalStore.ingest() en el frontend:
+    waveform (128 pts), spectrum (48 bins 0..1), rms, db, dominantFreq,
+    peakFreq, minFreq, energy, noiseFloor, amplitude, stability.
+    (anomalyScore lo agrega el backend desde el health score del modelo.)
+    """
+    audio = _decode(audio_bytes_or_array)
+    if audio.size < senal.N_FFT:
+        audio = np.pad(audio, (0, senal.N_FFT - audio.size))
+
+    # ── forma de onda: 128 puntos conservando picos (con signo) ──
+    bordes = np.linspace(0, audio.size, 129).astype(int)
+    waveform = []
+    for i in range(128):
+        seg = audio[bordes[i]: bordes[i + 1]]
+        waveform.append(float(seg[np.argmax(np.abs(seg))]) if seg.size else 0.0)
+    # escala visual estable: no amplificar el silencio
+    pico = max(0.05, max(abs(v) for v in waveform))
+    waveform = [round(v / pico, 3) for v in waveform]
+
+    # ── espectro: STFT → magnitud media → 48 bins comprimidos ──
+    stft = librosa.stft(audio, n_fft=senal.N_FFT, hop_length=senal.HOP)
+    mag = np.abs(stft)
+    perfil = mag.mean(axis=1)  # (513,) magnitud media por frecuencia
+    freqs = np.linspace(0, senal.SR / 2, perfil.size)
+    grupos = np.array_split(perfil, 48)
+    esp = np.array([g.mean() for g in grupos])
+    esp_max = esp.max() + 1e-9
+    spectrum = [round(float(v), 3) for v in np.sqrt(esp / esp_max)]
+
+    # ── métricas escalares ──
+    rms = float(np.sqrt(np.mean(audio**2)))
+    db = round(20 * np.log10(rms + 1e-9), 1)
+    relevante = perfil > 0.1 * perfil.max()
+    dominant = float(freqs[1:][np.argmax(perfil[1:])])  # sin el bin DC
+    peak = float(freqs[relevante].max()) if relevante.any() else dominant
+    fmin = float(freqs[relevante].min()) if relevante.any() else 0.0
+    noise_floor = round(20 * np.log10(np.percentile(perfil, 10) / esp_max + 1e-9), 1)
+
+    # estabilidad: qué tan constante es la energía entre frames (0-100)
+    rms_frames = np.sqrt((mag**2).mean(axis=0))
+    variacion = float(rms_frames.std() / (rms_frames.mean() + 1e-9))
+    stability = int(np.clip(100 * (1 - variacion), 0, 100))
+
+    return {
+        "waveform": waveform,
+        "spectrum": spectrum,
+        "rms": round(rms, 4),
+        "db": db,
+        "dominantFreq": int(dominant),
+        "peakFreq": int(peak),
+        "minFreq": int(fmin),
+        "energy": round(min(1.0, rms * 8), 3),
+        "noiseFloor": noise_floor,
+        "amplitude": round(float(np.abs(audio).max()), 3),
+        "stability": stability,
+    }
+
+
 def classify_window(audio_bytes_or_array, noise_profile=None) -> dict:
     """Clasifica una ventana y devuelve el contrato en inglés.
 

@@ -15,8 +15,17 @@ from modelo.signal_processing import (
     calibrate_noise,
     classify_window,
     reset_smoothing,
+    signal_features,
     wav_bytes_to_pcm16,
 )
+
+
+def features_para_ui(window, result: dict) -> dict:
+    """Features reales de la señal para las gráficas del dashboard.
+    anomalyScore viene del modelo: 100 - health score."""
+    feats = signal_features(window)
+    feats["anomalyScore"] = 100 - result["health_score"]
+    return feats
 from ai_recommender import get_pump_recommendation_async
 from report_generator import build_incident, generate_incident_report, send_report_email
 
@@ -361,7 +370,10 @@ async def websocket_audio(websocket: WebSocket):
                 result = classify_window(window, app_state["noise_profile"])
 
                 # Build and broadcast payload
-                await build_and_broadcast_payload(result, extra={"source": "live"})
+                await build_and_broadcast_payload(result, extra={
+                    "source": "live",
+                    "signal": features_para_ui(window, result),
+                })
                 
     except WebSocketDisconnect:
         print("Audio client disconnected")
@@ -407,6 +419,7 @@ async def upload_fallback_audio(file: UploadFile = File(...)):
                     "source": "file",
                     "file_position": position_s,
                     "file_duration": total_s,
+                    "signal": features_para_ui(window, result),
                 })
 
                 # Simulate real time passing (1 second)

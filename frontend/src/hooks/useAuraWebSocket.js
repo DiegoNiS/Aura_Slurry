@@ -19,6 +19,7 @@ const RUW =
 const useWebSocket = RUW.default || RUW;
 const ReadyState = RUW.ReadyState || ReactUseWebSocket.ReadyState;
 import usePumpStore from '../stores/usePumpStore';
+import useSignalStore from '../stores/useSignalStore';
 import { WS_ENDPOINTS, STATUS_COLOR_MAP, STATUS } from '../utils/constants';
 
 const READY_STATE_LABELS = {
@@ -53,6 +54,12 @@ export default function useAuraWebSocket() {
           lastMsgRef.current = Date.now();
 
           updateFromWs(data);
+
+          // features REALES de la señal calculadas por el backend sobre la
+          // ventana de audio procesada → gráficas de firma acústica en vivo
+          if (data.signal) {
+            useSignalStore.getState().ingest(data.signal);
+          }
 
           // notificar reporte de incidente nuevo hacia la minera
           if (data.report && data.report.id !== lastReportRef.current) {
