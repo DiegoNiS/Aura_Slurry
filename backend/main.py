@@ -228,3 +228,13 @@ async def upload_fallback_audio(file: UploadFile = File(...)):
     # Launch the background task
     asyncio.create_task(process_file(audio_bytes))
     return {"message": "File streaming started"}
+
+# ── Servir el dashboard compilado (frontend/dist) desde el propio backend ──
+# Permite abrir la app en http://<ip-laptop>:8000 sin depender del puerto de
+# Vite (útil para el celular: el firewall ya permite a Python en la red).
+# Se monta al final para no tapar /api/* ni /ws/*.
+_DIST = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+if os.path.isdir(_DIST):
+    from fastapi.staticfiles import StaticFiles
+
+    app.mount("/", StaticFiles(directory=_DIST, html=True), name="dashboard")
