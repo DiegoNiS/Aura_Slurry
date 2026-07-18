@@ -60,13 +60,15 @@ export default function TelemetryTopBar() {
   return (
     <Box
       sx={{
-        height: 52,
+        height: { xs: 'auto', md: 52 },
         flexShrink: 0,
         display: 'flex',
+        flexWrap: { xs: 'wrap', md: 'nowrap' },
         alignItems: 'center',
         justifyContent: 'space-between',
-        px: 2,
-        gap: 1.5,
+        px: { xs: 1.25, md: 2 },
+        py: { xs: 0.75, md: 0 },
+        gap: { xs: 0.75, md: 1.5 },
         backgroundColor: COLORS.bg.card,
         borderBottom: `1px solid ${COLORS.border.default}`,
         zIndex: 30,
@@ -94,7 +96,7 @@ export default function TelemetryTopBar() {
       </Box>
 
       {/* actions + status */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box sx={{ display: 'flex', flexWrap: { xs: 'wrap', md: 'nowrap' }, alignItems: 'center', gap: 1, rowGap: 0.75 }}>
         {inputMode !== 'idle' && (
           <Chip
             label={inputMode === 'live' ? '● EN VIVO' : '● RESPALDO'}
@@ -108,12 +110,12 @@ export default function TelemetryTopBar() {
           sx={{ backgroundColor: calibrated ? `${COLORS.status.normal}15` : `${COLORS.text.muted}10`, color: calibrated ? COLORS.status.normal : COLORS.text.muted, fontWeight: 600, fontSize: '0.56rem', height: 22, borderRadius: 1 }}
         />
         <ConnectionIndicator isConnected={wsConnected} />
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.25, display: { xs: 'none', md: 'block' } }} />
 
-        <Typography sx={{ fontFamily: '"Rajdhani", monospace', fontSize: '1rem', fontWeight: 600, color: COLORS.text.primary, letterSpacing: '0.05em', minWidth: 62, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
+        <Typography sx={{ display: { xs: 'none', sm: 'block' }, fontFamily: '"Rajdhani", monospace', fontSize: '1rem', fontWeight: 600, color: COLORS.text.primary, letterSpacing: '0.05em', minWidth: 62, textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>
           {clock}
         </Typography>
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.25 }} />
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.25, display: { xs: 'none', md: 'block' } }} />
 
         {/* primary controls */}
         <MotionButton

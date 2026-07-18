@@ -84,16 +84,24 @@ export default function IconRail() {
     <Box
       component="nav"
       sx={{
-        width: RAIL_WIDTH,
+        // Móvil (< md): barra inferior horizontal con scroll.
+        // Escritorio (md+): riel lateral izquierdo vertical.
+        position: { xs: 'fixed', md: 'static' },
+        bottom: { xs: 0, md: 'auto' },
+        left: { xs: 0, md: 'auto' },
+        width: { xs: '100%', md: RAIL_WIDTH },
+        height: { xs: 54, md: '100%' },
         flexShrink: 0,
-        height: '100%',
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: { xs: 'row', md: 'column' },
         alignItems: 'center',
-        py: 1.5,
+        py: { xs: 0, md: 1.5 },
+        px: { xs: 1, md: 0 },
         gap: 1,
+        overflowX: { xs: 'auto', md: 'visible' },
         backgroundColor: COLORS.bg.card,
-        borderRight: `1px solid ${COLORS.border.default}`,
+        borderRight: { xs: 'none', md: `1px solid ${COLORS.border.default}` },
+        borderTop: { xs: `1px solid ${COLORS.border.default}`, md: 'none' },
         zIndex: 20,
       }}
     >
@@ -103,7 +111,7 @@ export default function IconRail() {
           width: 34,
           height: 34,
           borderRadius: 1.5,
-          display: 'flex',
+          display: { xs: 'none', md: 'flex' },
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: `${COLORS.accent.cyan}18`,
@@ -115,8 +123,27 @@ export default function IconRail() {
       </Box>
 
       {GROUPS.map((group, gi) => (
-        <Box key={group} sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, width: '100%' }}>
-          {gi > 0 && <Box sx={{ height: 1, backgroundColor: COLORS.border.subtle, mx: 1.5, my: 0.5 }} />}
+        <Box
+          key={group}
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'row', md: 'column' },
+            gap: 0.5,
+            width: { xs: 'auto', md: '100%' },
+            flexShrink: 0,
+          }}
+        >
+          {gi > 0 && (
+            <Box
+              sx={{
+                display: { xs: 'none', md: 'block' },
+                height: 1,
+                backgroundColor: COLORS.border.subtle,
+                mx: 1.5,
+                my: 0.5,
+              }}
+            />
+          )}
           {PANELS.filter((p) => p.group === group).map((p) => (
             <RailItem
               key={p.id}
@@ -130,7 +157,15 @@ export default function IconRail() {
       ))}
 
       <Box sx={{ flex: 1 }} />
-      <Typography sx={{ fontSize: '0.5rem', color: COLORS.text.muted, textAlign: 'center', letterSpacing: '0.05em' }}>
+      <Typography
+        sx={{
+          display: { xs: 'none', md: 'block' },
+          fontSize: '0.5rem',
+          color: COLORS.text.muted,
+          textAlign: 'center',
+          letterSpacing: '0.05em',
+        }}
+      >
         v2.0
       </Typography>
     </Box>

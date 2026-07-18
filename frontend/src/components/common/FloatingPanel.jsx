@@ -8,7 +8,7 @@
  * focused panel sits on top; clicking any panel brings it forward.
  */
 import { useEffect } from 'react';
-import { Box, Typography, IconButton, Tooltip } from '@mui/material';
+import { Box, Typography, IconButton, Tooltip, useMediaQuery } from '@mui/material';
 import { motion } from 'framer-motion';
 import CloseIcon from '@mui/icons-material/Close';
 import { COLORS } from '../../utils/constants';
@@ -16,6 +16,7 @@ import { COLORS } from '../../utils/constants';
 const TOPBAR = 52;
 const STATUSBAR = 26;
 const MARGIN = 14;
+const MOBILE_RAIL = 54; // barra de iconos inferior en móvil
 
 export default function FloatingPanel({
   panel,
@@ -27,6 +28,9 @@ export default function FloatingPanel({
   children,
 }) {
   const width = panel.width || 440;
+  // En móvil el panel es una hoja inferior a casi pantalla completa
+  // (el tiling lateral de escritorio no cabe en un celular).
+  const isMobile = useMediaQuery('(max-width:900px)');
 
   useEffect(() => {
     if (!focused) return undefined;
@@ -37,20 +41,32 @@ export default function FloatingPanel({
     return () => window.removeEventListener('keydown', onKey);
   }, [focused, onClose, panel.id]);
 
+  const desktopStyle = {
+    top: TOPBAR + MARGIN,
+    right: rightOffset,
+    width,
+    maxWidth: `calc(100vw - ${72 + MARGIN}px)`,
+    height: `calc(100vh - ${TOPBAR + STATUSBAR + MARGIN * 2}px)`,
+  };
+  const mobileStyle = {
+    bottom: MOBILE_RAIL + 6,
+    left: 8,
+    right: 8,
+    width: 'auto',
+    maxHeight: `calc(100vh - ${TOPBAR + MOBILE_RAIL + 20}px)`,
+    height: '72vh',
+  };
+
   return (
     <motion.div
       onPointerDown={() => onFocus(panel.id)}
-      initial={{ x: 28, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      exit={{ x: 28, opacity: 0 }}
+      initial={isMobile ? { y: 40, opacity: 0 } : { x: 28, opacity: 0 }}
+      animate={isMobile ? { y: 0, opacity: 1 } : { x: 0, opacity: 1 }}
+      exit={isMobile ? { y: 40, opacity: 0 } : { x: 28, opacity: 0 }}
       transition={{ type: 'spring', damping: 28, stiffness: 300 }}
       style={{
         position: 'fixed',
-        top: TOPBAR + MARGIN,
-        right: rightOffset,
-        width,
-        maxWidth: `calc(100vw - ${72 + MARGIN}px)`,
-        height: `calc(100vh - ${TOPBAR + STATUSBAR + MARGIN * 2}px)`,
+        ...(isMobile ? mobileStyle : desktopStyle),
         zIndex: focused ? 1400 : 1320,
         display: 'flex',
         flexDirection: 'column',

@@ -71,7 +71,17 @@ export default function ControlRoomLayout() {
   }, []);
 
   return (
-    <Box sx={{ position: 'relative', height: '100vh', width: '100vw', overflow: 'hidden', backgroundColor: COLORS.bg.primary }}>
+    <Box
+      sx={{
+        position: 'relative',
+        height: '100vh',
+        // dvh evita el corte por la barra del navegador en móvil
+        '@supports (height: 100dvh)': { height: '100dvh' },
+        width: '100vw',
+        overflow: 'hidden',
+        backgroundColor: COLORS.bg.primary,
+      }}
+    >
       <BlueprintBackground />
 
       <Box sx={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex' }}>
@@ -88,6 +98,8 @@ export default function ControlRoomLayout() {
               display: 'flex',
               gap: 1.5,
               p: 1.5,
+              // en móvil el riel es barra inferior fija: dejarle espacio
+              pb: { xs: '62px', md: 1.5 },
               overflow: { xs: 'auto', lg: 'hidden' },
               flexDirection: { xs: 'column', lg: 'row' },
             }}

@@ -45,7 +45,8 @@ export default function StatusBar() {
       sx={{
         height: 26,
         flexShrink: 0,
-        display: 'flex',
+        // en móvil el riel inferior ocupa su lugar — ocultar el footer
+        display: { xs: 'none', md: 'flex' },
         alignItems: 'center',
         gap: 2.5,
         px: 2,
