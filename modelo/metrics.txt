@@ -1,17 +1,26 @@
 Aura-Slurry — evaluación del modelo (ids=['id_00'], ventana=2.0s)
 Ventanas: 13785 train / 1150 test (split por archivo)
 
-Accuracy: 0.9887
+Accuracy: 0.9678
 
 Matriz de confusión (filas=real, columnas=predicho) [normal, abnormal]:
 [[1005    0]
- [  13  132]]
+ [  37  108]]
 
               precision    recall  f1-score   support
 
-      normal       0.99      1.00      0.99      1005
-    abnormal       1.00      0.91      0.95       145
+      normal       0.96      1.00      0.98      1005
+    abnormal       1.00      0.74      0.85       145
 
-    accuracy                           0.99      1150
-   macro avg       0.99      0.96      0.97      1150
-weighted avg       0.99      0.99      0.99      1150
+    accuracy                           0.97      1150
+   macro avg       0.98      0.87      0.92      1150
+weighted avg       0.97      0.97      0.97      1150
+
+--- Métricas a nivel de EVENTO (unidad de negocio: archivo de 10 s) ---
+Criterio: un evento alerta si >= 2 de sus 5 ventanas no son NORMAL.
+Recall de fallas:   28/29 = 96.6%  (1 falla sutil no detectada)
+Falsas alarmas:      0/201 = 0.0%
+Nota: el recall por ventana individual (74%) subestima la detección real:
+una falla sostenida produce ventanas continuamente y basta detectar una
+fracción para disparar la alerta. Features normalizados por RMS (el
+diagnóstico no depende del volumen del micrófono).

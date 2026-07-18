@@ -215,11 +215,14 @@ def main() -> None:
     X_test, y_test = np.array(X_test), np.array(y_test)
     print(f"Ventanas: {len(y_train)} train / {len(y_test)} test")
 
-    # 3. Entrenar (C-3): balanced por el desbalance ~7:1 normal/abnormal;
-    #    max_depth acotado mantiene el .joblib en pocos MB.
+    # 3. Entrenar (C-3): balanced por el desbalance ~7:1 normal/abnormal.
+    #    Con features normalizados por RMS (sin pista de volumen) el problema
+    #    es más difícil: más árboles y más profundidad para recuperar recall
+    #    de fallas por timbre; min_samples_leaf acota el tamaño del .joblib.
     modelo = RandomForestClassifier(
-        n_estimators=200,
-        max_depth=15,
+        n_estimators=300,
+        max_depth=25,
+        min_samples_leaf=2,
         class_weight="balanced",
         n_jobs=-1,
         random_state=42,

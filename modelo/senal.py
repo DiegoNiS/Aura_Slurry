@@ -53,12 +53,22 @@ def _a_float_mono(audio) -> np.ndarray:
     return audio
 
 
+RMS_OBJETIVO = 0.05  # energía a la que se normaliza toda ventana
+
+
 def extraer_features(audio: np.ndarray) -> np.ndarray:
     """MFCC (n_mfcc=20) → media + desviación estándar por coeficiente.
 
     Devuelve un vector fijo de 40 features (RF-06). Se usa idéntico en
     entrenamiento (entrenar.py) e inferencia.
+
+    La ventana se normaliza a RMS constante antes de extraer: el volumen
+    (distancia del micrófono, ganancia del parlante, normalización de un
+    WAV) no debe cambiar el diagnóstico — solo importa el "timbre".
     """
+    rms = float(np.sqrt(np.mean(audio**2)))
+    if rms > 1e-5:
+        audio = audio * (RMS_OBJETIVO / rms)
     mfcc = librosa.feature.mfcc(
         y=audio, sr=SR, n_mfcc=N_MFCC, n_fft=N_FFT, hop_length=HOP
     )
@@ -109,6 +119,10 @@ def clasificar_ventana(audio_array, perfil_ruido: PerfilRuido | None = None) -> 
         cargar_modelo()
 
     audio = _a_float_mono(audio_array)
+    # Guard: una ventana más corta que la FFT (p.ej. chunk residual del mic)
+    # se rellena con ceros en vez de dejar que librosa haga padding implícito.
+    if audio.size < N_FFT:
+        audio = np.pad(audio, (0, N_FFT - audio.size))
     if perfil_ruido is not None:
         audio = _sustraer_ruido(audio, perfil_ruido)
 

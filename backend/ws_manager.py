@@ -16,12 +16,17 @@ class ConnectionManager:
         await websocket.send_text(message)
 
     async def broadcast_json(self, message: dict):
-        for connection in self.active_connections:
+        # Iterar sobre una COPIA: mutar la lista dentro del for salta clientes
+        # cuando hay desconexiones concurrentes (auditoría 2026-07-18, #1).
+        dead = []
+        for connection in list(self.active_connections):
             try:
                 await connection.send_json(message)
             except Exception:
-                # If sending fails (e.g., client disconnected abruptly), remove the connection
-                self.disconnect(connection)
+                dead.append(connection)
+        for connection in dead:
+            if connection in self.active_connections:
+                self.active_connections.remove(connection)
 
 # Global instance to be used in main.py
 manager = ConnectionManager()

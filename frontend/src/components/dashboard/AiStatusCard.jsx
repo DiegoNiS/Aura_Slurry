@@ -28,6 +28,7 @@ export default function AiStatusCard() {
   const lastInferenceMs = usePumpStore((s) => s.lastInferenceMs);
   const modelLoaded = usePumpStore((s) => s.modelLoaded);
   const modelName = usePumpStore((s) => s.modelName);
+  const recommendation = usePumpStore((s) => s.recommendation);
   const anomalyScore = useSignalStore((s) => s.anomalyScore);
   const openPanel = useUiStore((s) => s.openPanel);
 
@@ -88,6 +89,36 @@ export default function AiStatusCard() {
           </Typography>
         </Box>
       </Row>
+
+      {/* Recomendación del asistente IA (Gemini, generada por el backend) */}
+      {recommendation && (
+        <Box
+          sx={{
+            mt: 0.75,
+            p: 1,
+            borderRadius: 1.5,
+            backgroundColor: `${COLORS.accent.purple}10`,
+            border: `1px solid ${COLORS.accent.purple}30`,
+          }}
+        >
+          <Typography sx={{ fontSize: '0.56rem', fontWeight: 700, letterSpacing: '0.08em', color: COLORS.accent.purple, textTransform: 'uppercase', mb: 0.25 }}>
+            Recomendación IA
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: '0.68rem',
+              color: COLORS.text.primary,
+              lineHeight: 1.35,
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
+            {recommendation}
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 }

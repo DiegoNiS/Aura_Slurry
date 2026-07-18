@@ -16,12 +16,20 @@ export default function AiPanelContent() {
   const confidence = usePumpStore((s) => s.confidence);
   const latency = usePumpStore((s) => s.lastInferenceMs);
   const healthScore = usePumpStore((s) => s.healthScore);
+  const recommendation = usePumpStore((s) => s.recommendation);
 
   return (
     <PanelBody>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around' }}>
         <RadialGauge value={confidence * 100} unit="%" label="Confianza" color={colorFromScore(healthScore)} />
         <RadialGauge value={latency} max={200} unit="ms" label="Latencia" color={COLORS.accent.cyan} />
+      </Box>
+
+      <Box>
+        <SectionLabel>Recomendación del asistente (Gemini)</SectionLabel>
+        <Typography sx={{ fontSize: '0.76rem', color: recommendation ? COLORS.text.primary : COLORS.text.muted, lineHeight: 1.45, py: 0.5 }}>
+          {recommendation || 'Aún no hay recomendación — se genera al cambiar el estado de la bomba.'}
+        </Typography>
       </Box>
 
       <Box>

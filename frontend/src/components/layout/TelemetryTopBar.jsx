@@ -4,7 +4,7 @@
  * connection · clock · primary actions (Live / Calibrate / Upload WAV).
  */
 import { useState, useEffect, useRef } from 'react';
-import { Box, Typography, Chip, Divider, Button, Tooltip } from '@mui/material';
+import { Box, Typography, Chip, Divider, Button, Tooltip, LinearProgress } from '@mui/material';
 import { motion } from 'framer-motion';
 import SensorsIcon from '@mui/icons-material/Sensors';
 import MicIcon from '@mui/icons-material/Mic';
@@ -16,7 +16,7 @@ import usePumpStore from '../../stores/usePumpStore';
 import useUiStore from '../../stores/useUiStore';
 import useMicCapture from '../../hooks/useMicCapture';
 import { uploadAudio } from '../../services/api';
-import ConnectionIndicator from '../ConnectionIndicator';
+import ConnectionIndicator from '../common/ConnectionIndicator';
 import { COLORS, STATUS_COLOR_MAP, STATUS, MACHINE, PANEL_IDS } from '../../utils/constants';
 
 const MotionButton = motion.create(Button);
@@ -26,6 +26,7 @@ export default function TelemetryTopBar() {
   const calibrated = usePumpStore((s) => s.calibrated);
   const wsConnected = usePumpStore((s) => s.wsConnected);
   const inputMode = usePumpStore((s) => s.inputMode);
+  const fileProgress = usePumpStore((s) => s.fileProgress);
   const isLive = usePumpStore((s) => s.isLive);
   const setIsLive = usePumpStore((s) => s.setIsLive);
   const setInputMode = usePumpStore((s) => s.setInputMode);
@@ -57,9 +58,13 @@ export default function TelemetryTopBar() {
     }
   };
 
+  const fmtTime = (s) => `${Math.floor(s / 60)}:${String(Math.round(s) % 60).padStart(2, '0')}`;
+  const fileActive = inputMode === 'file' && fileProgress && fileProgress.duration > 0;
+
   return (
     <Box
       sx={{
+        position: 'relative',
         height: { xs: 'auto', md: 52 },
         flexShrink: 0,
         display: 'flex',
@@ -99,9 +104,17 @@ export default function TelemetryTopBar() {
       <Box sx={{ display: 'flex', flexWrap: { xs: 'wrap', md: 'nowrap' }, alignItems: 'center', gap: 1, rowGap: 0.75 }}>
         {inputMode !== 'idle' && (
           <Chip
-            label={inputMode === 'live' ? '● EN VIVO' : '● RESPALDO'}
+            label={
+              inputMode === 'live'
+                ? '● EN VIVO'
+                : fileProgress
+                  ? fileProgress.position >= fileProgress.duration
+                    ? '✓ ARCHIVO COMPLETADO'
+                    : `● ARCHIVO ${fmtTime(fileProgress.position)} / ${fmtTime(fileProgress.duration)}`
+                  : '● RESPALDO'
+            }
             size="small"
-            sx={{ backgroundColor: inputMode === 'live' ? `${COLORS.status.critical}15` : `${COLORS.accent.blue}15`, color: inputMode === 'live' ? COLORS.status.critical : COLORS.accent.blue, fontWeight: 700, fontSize: '0.56rem', height: 22, borderRadius: 1 }}
+            sx={{ backgroundColor: inputMode === 'live' ? `${COLORS.status.critical}15` : `${COLORS.accent.blue}15`, color: inputMode === 'live' ? COLORS.status.critical : COLORS.accent.blue, fontWeight: 700, fontSize: '0.56rem', height: 22, borderRadius: 1, fontVariantNumeric: 'tabular-nums' }}
           />
         )}
         <Chip
@@ -161,6 +174,23 @@ export default function TelemetryTopBar() {
         </Tooltip>
         <input ref={fileRef} type="file" accept=".wav,audio/wav" onChange={handleUpload} style={{ display: 'none' }} />
       </Box>
+
+      {/* progreso del archivo en reproducción (segundo procesado / total) */}
+      {fileActive && fileProgress.position < fileProgress.duration && (
+        <LinearProgress
+          variant="determinate"
+          value={(fileProgress.position / fileProgress.duration) * 100}
+          sx={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: 3,
+            backgroundColor: `${COLORS.accent.blue}22`,
+            '& .MuiLinearProgress-bar': { backgroundColor: COLORS.accent.blue },
+          }}
+        />
+      )}
     </Box>
   );
 }

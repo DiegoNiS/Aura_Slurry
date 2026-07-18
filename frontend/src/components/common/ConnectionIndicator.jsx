@@ -6,7 +6,7 @@
  */
 import { Box, Typography, Tooltip } from '@mui/material';
 import { motion } from 'framer-motion';
-import { COLORS } from '../utils/constants';
+import { COLORS } from '../../utils/constants';
 
 export default function ConnectionIndicator({ isConnected, label }) {
   const color = isConnected ? COLORS.status.normal : COLORS.status.critical;

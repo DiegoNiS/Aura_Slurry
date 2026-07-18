@@ -24,10 +24,13 @@ load_dotenv()
 
 app = FastAPI(title="Aura-Slurry Backend")
 
+# CORS: wildcard + credentials es inválido según la spec (auditoría #2).
+# No usamos cookies ni credenciales → credentials en False hace válido el "*".
+# En producción: lista explícita de orígenes vía variable de entorno.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify origins
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -51,6 +54,20 @@ SAMPLE_RATE = 16000
 BYTES_PER_SAMPLE = 2  # Int16
 WINDOW_SECONDS = 1
 WINDOW_SIZE_BYTES = SAMPLE_RATE * BYTES_PER_SAMPLE * WINDOW_SECONDS
+MAX_UPLOAD_BYTES = 60 * 1024 * 1024  # ~60 MB ≈ 30 min de WAV 16k mono (anti-DoS)
+
+
+async def leer_upload_validado(file: UploadFile) -> bytes:
+    """Lee un archivo subido con validación básica (auditoría #5)."""
+    data = await file.read()
+    if not data:
+        raise HTTPException(status_code=400, detail="Archivo vacío")
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Archivo demasiado grande (máx {MAX_UPLOAD_BYTES // 1024 // 1024} MB)",
+        )
+    return data
 RECOMMENDATION_COOLDOWN_SECONDS = 30 * 60  # 30 minutes
 
 async def trigger_recommendation_if_needed(status: str, health_score: int, alert: str):
@@ -73,17 +90,18 @@ async def trigger_recommendation_if_needed(status: str, health_score: int, alert
             
         asyncio.create_task(fetch_and_update())
 
-async def build_and_broadcast_payload(result: dict):
+async def build_and_broadcast_payload(result: dict, extra: dict | None = None):
     """
     Builds the final contract payload and sends it.
-    Also manages the recommendation trigger.
+    Also manages the recommendation trigger. `extra` permite adjuntar
+    metadatos de la fuente (p.ej. progreso del archivo en modo respaldo).
     """
     await trigger_recommendation_if_needed(
-        result["status"], 
-        result["health_score"], 
+        result["status"],
+        result["health_score"],
         result["alert"]
     )
-    
+
     payload = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "status": result["status"],
@@ -91,13 +109,24 @@ async def build_and_broadcast_payload(result: dict):
         "confidence": result["confidence"],
         "alert": result["alert"],
         "calibrated": app_state["calibrated"],
-        "recommendation": app_state["current_recommendation"]
+        "recommendation": app_state["current_recommendation"],
+        **(extra or {}),
     }
     app_state["last_result"] = result
     await manager.broadcast_json(payload)
 
 @app.on_event("startup")
 async def startup_event():
+    # Warmup: cargar modelo.joblib e inicializar librosa con una ventana de
+    # silencio. Sin esto, la PRIMERA clasificación real paga ~10 s de carga
+    # perezosa bloqueando el event loop (mal momento en plena demo).
+    import numpy as np
+
+    loop = asyncio.get_running_loop()
+    silencio = np.zeros(SAMPLE_RATE, dtype=np.int16).tobytes()
+    await loop.run_in_executor(None, classify_window, silencio, None)
+    print("Warmup del modelo completado")
+
     # Start the background task to emit mock data when idle
     asyncio.create_task(mock_data_generator())
 
@@ -125,10 +154,15 @@ async def health_check():
 
 @app.post("/api/calibrate")
 async def calibrate(file: UploadFile = File(...)):
-    audio_bytes = await file.read()
-    # Call signal_processing (mocked for now)
-    profile = calibrate_noise(audio_bytes)
-    
+    audio_bytes = await leer_upload_validado(file)
+    try:
+        profile = calibrate_noise(audio_bytes)
+    except Exception:
+        raise HTTPException(
+            status_code=400,
+            detail="Audio de calibración inválido (se espera WAV o PCM Int16 16 kHz)",
+        )
+
     app_state["noise_profile"] = profile
     app_state["calibrated"] = True
     
@@ -205,9 +239,9 @@ async def websocket_audio(websocket: WebSocket):
                 
                 # Classify the window
                 result = classify_window(window, app_state["noise_profile"])
-                
+
                 # Build and broadcast payload
-                await build_and_broadcast_payload(result)
+                await build_and_broadcast_payload(result, extra={"source": "live"})
                 
     except WebSocketDisconnect:
         print("Audio client disconnected")
@@ -223,23 +257,38 @@ async def upload_fallback_audio(file: UploadFile = File(...)):
         raise HTTPException(status_code=409, detail="Already processing audio from another source")
         
     app_state["processing_audio"] = True
-    raw = await file.read()
-    # Decodificar el WAV (header, subtipo float/int, canales, sr) a PCM
-    # Int16 mono 16 kHz — ventanear el archivo crudo corrompería el audio.
-    audio_bytes = wav_bytes_to_pcm16(raw)
+    try:
+        raw = await leer_upload_validado(file)
+        # Decodificar el WAV (header, subtipo float/int, canales, sr) a PCM
+        # Int16 mono 16 kHz — ventanear el archivo crudo corrompería el audio.
+        audio_bytes = wav_bytes_to_pcm16(raw)
+    except HTTPException:
+        app_state["processing_audio"] = False
+        raise
+    except Exception:
+        app_state["processing_audio"] = False
+        raise HTTPException(status_code=400, detail="Archivo de audio inválido (se espera WAV)")
     reset_smoothing()
 
     # Simple background processing (for MVP)
     async def process_file(data: bytes):
+        # progreso visible en el dashboard: 1 ventana = 1 segundo de audio
+        total_s = len(data) // WINDOW_SIZE_BYTES * WINDOW_SECONDS
         try:
             offset = 0
+            position_s = 0
             while offset + WINDOW_SIZE_BYTES <= len(data):
                 window = data[offset:offset+WINDOW_SIZE_BYTES]
                 offset += WINDOW_SIZE_BYTES
-                
+                position_s += WINDOW_SECONDS
+
                 result = classify_window(window, app_state["noise_profile"])
-                await build_and_broadcast_payload(result)
-                
+                await build_and_broadcast_payload(result, extra={
+                    "source": "file",
+                    "file_position": position_s,
+                    "file_duration": total_s,
+                })
+
                 # Simulate real time passing (1 second)
                 await asyncio.sleep(WINDOW_SECONDS)
         finally:

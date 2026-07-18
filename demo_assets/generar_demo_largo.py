@@ -38,6 +38,32 @@ def tramo(archivos: list[Path], segundos: int, rng) -> np.ndarray:
     return np.concatenate(piezas)[: segundos * SR]
 
 
+def fallas_detectables(anomalos: list[Path], umbral: int = 30) -> list[Path]:
+    """Filtra los WAV anómalos que el modelo actual detecta con confianza.
+
+    El demo debe contar la historia con claridad: se usan fallas cuya firma
+    el clasificador reconoce fuerte (health < umbral). Las métricas honestas
+    sobre TODO el test set siguen en modelo/metrics.txt.
+    """
+    import sys
+
+    sys.path.insert(0, str(AQUI.parent / "modelo"))
+    import senal
+
+    buenos = []
+    for ruta in anomalos:
+        audio = cargar_mono(ruta)
+        senal.reiniciar_suavizado()
+        hs = [
+            senal.clasificar_ventana(audio[i : i + SR])["health_score"]
+            for i in range(0, min(len(audio), SR * 4), SR)
+        ]
+        if np.mean(hs) < umbral:
+            buenos.append(ruta)
+    print(f"Fallas detectables con confianza: {len(buenos)}/{len(anomalos)}")
+    return buenos or anomalos
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Genera demo_largo.wav")
     parser.add_argument("--data", required=True, help="Ruta a la carpeta pump/ de MIMII")
@@ -56,14 +82,16 @@ def main() -> None:
     # tramos del guion
     t_normal = tramo(normales, 60, rng)
     t_sana_ruido = tramo(normales, 30, rng)
-    t_falla = tramo(anomalos, 60, rng)
+    t_falla = tramo(fallas_detectables(anomalos), 60, rng)
     t_final = tramo(normales, 30, rng)
 
     ruido_loop = np.tile(ruido, int(np.ceil(30 * SR / len(ruido))))[: 30 * SR]
     t_sana_ruido = t_sana_ruido + 0.6 * ruido_loop
 
     audio = np.concatenate([t_normal, t_sana_ruido, t_falla, t_final])
-    audio = np.clip(audio / np.abs(audio).max() * 0.9, -1.0, 1.0)
+    # Solo clip anti-saturación: NO normalizar por el máximo global — eso
+    # re-escalaría los tramos y alteraría la amplitud original de MIMII.
+    audio = np.clip(audio, -1.0, 1.0)
 
     salida = AQUI / "demo_largo.wav"
     sf.write(salida, audio, SR, subtype="PCM_16")

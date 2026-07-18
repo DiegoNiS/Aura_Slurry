@@ -17,6 +17,7 @@ const usePumpStore = create((set, get) => ({
   confidence: 0.94,
   alert: null,
   calibrated: false,
+  recommendation: null, // texto de Gemini generado por el backend
   timestamp: new Date().toISOString(),
 
   // ─── Derived / history ────────────────────────────────────────────
@@ -29,6 +30,7 @@ const usePumpStore = create((set, get) => ({
   calibrationProgress: 0,
   wsConnected: false,
   inputMode: 'idle', // 'idle' | 'live' | 'file'
+  fileProgress: null, // { position, duration } en segundos (modo archivo)
 
   // Model telemetry (populated from contract + local timing) ─────────
   lastInferenceMs: 42,
@@ -75,6 +77,17 @@ const usePumpStore = create((set, get) => ({
       healthHistory: updatedHistory,
       alerts: updatedAlerts,
       ...(meta.inferenceMs != null ? { lastInferenceMs: meta.inferenceMs } : {}),
+      // recomendación IA (Gemini) generada por el backend — auditoría #3
+      ...(data.recommendation !== undefined ? { recommendation: data.recommendation } : {}),
+      // visibilidad de la fuente: en modo archivo el backend manda el
+      // segundo que está procesando y la duración total
+      ...(data.source === 'file' && data.file_duration
+        ? {
+            inputMode: 'file',
+            fileProgress: { position: data.file_position, duration: data.file_duration },
+          }
+        : {}),
+      ...(data.source === 'live' ? { inputMode: 'live', fileProgress: null } : {}),
     });
   },
 
