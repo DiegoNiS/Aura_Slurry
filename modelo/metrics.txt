@@ -1,5 +1,5 @@
 Aura-Slurry — evaluación del modelo (ids=['id_00'], ventana=2.0s)
-Ventanas: 9190 train / 1150 test (split por archivo)
+Ventanas: 13785 train / 1150 test (split por archivo)
 
 Accuracy: 0.9887
 

@@ -60,20 +60,56 @@ def features_de_archivos(archivos: list[Path], etiqueta: int):
     return X, y
 
 
-def aumentar_con_ruido(archivos: list[Path], etiqueta: int, ruido: np.ndarray, rng):
-    """Aumento de datos: ventana + ruido a ganancia aleatoria → sustracción → features.
+def _canal_acustico(ventana: np.ndarray, rng) -> np.ndarray:
+    """Simula el camino parlante→aire→micrófono de la demo en vivo.
 
-    Así el modelo aprende a clasificar el audio YA procesado por la calibración
-    (con sus artefactos), que es lo que verá en vivo cuando el operador calibre.
+    Los parlantes pequeños pierden los graves (el rumble de la bomba) y los
+    micrófonos de celular colorean el espectro: pasa-altos + pasa-bajos con
+    frecuencias de corte aleatorias + ganancia aleatoria.
     """
-    perfil = calibrar_ruido(ruido[: SR * 3])
+    from scipy.signal import butter, sosfilt
+
+    sos = butter(2, rng.uniform(80, 400), "highpass", fs=SR, output="sos")
+    v = sosfilt(sos, ventana)
+    if rng.random() < 0.7:
+        sos2 = butter(2, rng.uniform(3500, 7500), "lowpass", fs=SR, output="sos")
+        v = sosfilt(sos2, v)
+    return (v * rng.uniform(0.25, 1.5)).astype(np.float32)
+
+
+def aumentar_con_ruido(archivos: list[Path], etiqueta: int, ruido: np.ndarray, rng):
+    """Aumento de datos: por cada ventana se generan variantes que cubren lo
+    que el modelo verá en la realidad (nunca audio limpio de dataset):
+
+    1. ruido de planta a ganancia aleatoria → sustracción espectral
+    2. canal acústico (parlante/mic de la demo), a veces con sustracción de
+       un perfil arbitrario (ruido o silencio de sala)
+
+    Así ni la calibración con perfiles diversos ni la acústica del ambiente
+    sacan al modelo de su distribución de entrenamiento.
+    """
+    perfil_ruido = calibrar_ruido(ruido[: SR * 3])
+    silencio = rng.normal(0, 0.003, SR * 3).astype(np.float32)
+    perfil_silencio = calibrar_ruido(silencio)
+
     X, y = [], []
     for i, ruta in enumerate(archivos):
         for ventana in ventanear(cargar_wav_canal1(ruta)):
+            # variante 1: ruido + calibración
             g = rng.uniform(0.3, 1.2)
             ini = rng.integers(0, len(ruido) - len(ventana))
             mezcla = ventana + g * ruido[ini : ini + len(ventana)]
-            X.append(extraer_features(_sustraer_ruido(mezcla, perfil)))
+            X.append(extraer_features(_sustraer_ruido(mezcla, perfil_ruido)))
+            y.append(etiqueta)
+
+            # variante 2: canal acústico de la demo (± perfil arbitrario)
+            v = _canal_acustico(ventana, rng)
+            sorteo = rng.random()
+            if sorteo < 0.25:
+                v = _sustraer_ruido(v, perfil_silencio)
+            elif sorteo < 0.5:
+                v = _sustraer_ruido(v, perfil_ruido)
+            X.append(extraer_features(v))
             y.append(etiqueta)
         if (i + 1) % 100 == 0:
             print(f"    {i + 1}/{len(archivos)} archivos aumentados…")
